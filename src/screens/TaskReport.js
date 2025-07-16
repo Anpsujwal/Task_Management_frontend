@@ -1,6 +1,7 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator ,Image} from "react-native";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator ,Image,ScrollView} from "react-native";
 import React, { useEffect, useState } from "react";
 import api from "../api/api";
+import { ScrollView } from "react-native-web";
 
 export default function TaskDashboard() {
   const [tasks, setTasks] = useState([]);
@@ -90,7 +91,7 @@ export default function TaskDashboard() {
             data={filteredTasks}
             keyExtractor={item => item._id}
             renderItem={({ item }) => (
-              <View style={styles.taskCard}>
+              <ScrollView style={styles.taskCard}>
                 <Text style={styles.taskTitle}>{item.title}</Text>
                 <Text>Status: <Text style={styles.status}>{item.status?.text}</Text></Text>
                 <Text>
@@ -110,7 +111,7 @@ export default function TaskDashboard() {
                   source={{ uri: `${api.defaults.baseURL}/api/tasks/${item._id}/image` }}
                   style={{ width: 200, height: 200 }}
                 />
-              </View>
+              </ScrollView>
             )}
             contentContainerStyle={{ paddingBottom: 100 }}
           />
