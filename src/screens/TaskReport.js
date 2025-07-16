@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator ,Image,ScrollView} from "react-native";
 import React, { useEffect, useState } from "react";
 import api from "../api/api";
-import { ScrollView } from "react-native-web";
+
 
 export default function TaskDashboard() {
   const [tasks, setTasks] = useState([]);
