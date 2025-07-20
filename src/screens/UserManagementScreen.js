@@ -3,6 +3,7 @@ import {
   View, Text, TextInput, FlatList, StyleSheet,
   Alert, TouchableOpacity, ScrollView, Switch
 } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../api/api';
 
@@ -15,6 +16,8 @@ export default function UserManagementScreen() {
   const [editingUserId, setEditingUserId] = useState(null);
   const [editName, setEditName] = useState('');
   const [editIsAdmin, setEditIsAdmin] = useState(false);
+  const [assignedGroup, setAssignedGroup] = useState('');
+  const [groups, setGroups] = useState([]);
 
   const fetchUsers = async () => {
     try {
@@ -32,18 +35,23 @@ export default function UserManagementScreen() {
       return;
     }
     try {
-      await api.post('/api/auth/signup', {
+      payload={
         name,
         userId,
         password,
         isAdmin,
-      });
+      }
+      if (assignedGroup) {
+        payload.group = assignedGroup;
+      }
+      await api.post('/api/auth/signup', payload);
 
       setName('');
       setUserId('');
       setPassword('');
       setIsAdmin(false);
       fetchUsers();
+      setAssignedGroup('');
 
       Alert.alert("Success", "User created");
     } catch (err) {
@@ -83,9 +91,20 @@ export default function UserManagementScreen() {
       Alert.alert("Error", "Failed to update user");
     }
   };
+  const fetchGroups = async () => {
+    try{
+       const res=await api.get('/api/groups');
+       setGroups(res.data);
+    }catch(err){
+      Alert.alert('Error', 'Failed to load groups');
+    }
+  }
+
+
 
   useEffect(() => {
     fetchUsers();
+    fetchGroups();
   }, []);
 
   return (
@@ -100,7 +119,7 @@ export default function UserManagementScreen() {
             value={name}
             onChangeText={setName}
           />
-           <TextInput
+          <TextInput
             placeholder="userId"
             style={styles.input}
             value={userId}
@@ -123,6 +142,21 @@ export default function UserManagementScreen() {
             />
             <Text style={[styles.label, isAdmin && styles.selected]}>Admin</Text>
           </View>
+
+          <Text style={styles.label}>Assign to Group</Text>
+          <View style={styles.input}>
+            <Picker
+              selectedValue={assignedGroup}
+              onValueChange={setAssignedGroup}
+              style={styles.picker}
+            >
+              <Picker.Item label="Select group" value="" />
+              {groups.map(g => (
+                <Picker.Item key={g._id} label={g.name} value={g._id} />
+              ))}
+            </Picker>
+          </View>
+
           <TouchableOpacity style={styles.button} onPress={handleCreateUser}>
             <Text style={styles.buttonText}>Create User</Text>
           </TouchableOpacity>
@@ -139,6 +173,7 @@ export default function UserManagementScreen() {
                   <Text style={styles.userName}>ID: {item.userId}</Text>
                   <Text style={styles.userEmail}>Name: {item.name}</Text>
                   <Text style={styles.userRole}>Role: {item.isAdmin ? 'Admin' : 'User'}</Text>
+                  <Text>Group:{groups.filter((group)=>group._id===item.group)[0]?.name}</Text>
 
                   <View style={styles.buttonRow}>
                     <TouchableOpacity

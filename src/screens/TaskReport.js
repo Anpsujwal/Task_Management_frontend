@@ -1,12 +1,15 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator ,Image,ScrollView} from "react-native";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image, ScrollView,Button} from "react-native";
 import React, { useEffect, useState } from "react";
 import api from "../api/api";
+import {Video, Audio } from "expo-av";
+
 
 
 export default function TaskDashboard() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState(null); // null shows none initially
+  const [selectedCategory, setSelectedCategory] = useState(null); 
+  const [sound, setSound] = useState(null);
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -67,6 +70,14 @@ export default function TaskDashboard() {
     );
   }
 
+  async function playAudio(id) {
+    await Audio.Sound.createAsync(
+      { uri: `${api.defaults.baseURL}/api/tasks/${id}/audio` },
+      { shouldPlay: true }
+    );
+  
+  }
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Task Summary</Text>
@@ -91,7 +102,7 @@ export default function TaskDashboard() {
             data={filteredTasks}
             keyExtractor={item => item._id}
             renderItem={({ item }) => (
-              <ScrollView style={styles.taskCard}>
+              <View style={styles.taskCard}>
                 <Text style={styles.taskTitle}>{item.title}</Text>
                 <Text>Status: <Text style={styles.status}>{item.status?.text}</Text></Text>
                 <Text>
@@ -107,13 +118,29 @@ export default function TaskDashboard() {
                     : "N/A"}
                 </Text>
                 <Text>Created At: {new Date(item.createdAt).toLocaleDateString()}</Text>
+                {item.status?.image &&
                 <Image
                   source={{ uri: `${api.defaults.baseURL}/api/tasks/${item._id}/image` }}
                   style={{ width: 200, height: 200 }}
                 />
-              </ScrollView>
+            }
+                
+                { item.status?.video &&
+                <Video
+                  source={{ uri: `${api.defaults.baseURL}/api/tasks/${item._id}/video` }}
+                  style={{ width: 600, height: 600 }}
+                  useNativeControls
+                  resizeMode="contain"
+                  isLooping
+                />
+            }
+                {item.status?.audio &&
+                <Button title="Play Audio" onPress={()=>{playAudio(item._id)}} />
+            }
+              </View>
+                
             )}
-            contentContainerStyle={{ paddingBottom: 100 }}
+            
           />
         </>
       )}
@@ -197,4 +224,32 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#007bff",
   },
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: "#f0f2f5",
+  },
+  flatListContent: {
+    paddingBottom: 150, // extra space to avoid clipping at the bottom
+  },
+  taskCard: {
+    backgroundColor: "#fff",
+    padding: 16,
+    marginVertical: 8,
+    borderRadius: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  taskTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
+  status: {
+    fontWeight: "600",
+    color: "#007bff",
+  },
+
 });

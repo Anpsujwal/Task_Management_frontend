@@ -17,11 +17,11 @@ export default function TaskManagementScreen() {
   const [users, setUsers] = useState([]);
 
   const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [description, setDescription] = useState('');
+  const [comment, setComment] = useState('');
   const [priority, setPriority] = useState('low');
   const [assignedWorkers, setAssignedWorkers] = useState([]);
   const [assignedGroup, setAssignedGroup] = useState('');
-  const [isRoutine, setIsRoutine] = useState(false);
+  const [scheduleFor, setScheduleFor] = useState('specific_day');
   const [groups, setGroups] = useState([]);
 
   const [dueDate, setDueDate] = useState(new Date());
@@ -38,31 +38,30 @@ export default function TaskManagementScreen() {
     try {
       const payload = {
         title: newTaskTitle,
-        description,
+        comment,
         priority,
         assignedWorkers,
-        completeBy: {
-          isRoutine,
-          dueDate,
-        },
+        scheduleFor,
+        dueDate,
+
       };
 
       if (assignedGroup) {
         payload.assignedGroup = assignedGroup; // only add if it's not empty
       }
       const res = await api.post('/api/tasks', payload);
-      fetchAllTasks(); 
+      fetchAllTasks();
       Alert.alert('Success', 'Task created');
       setNewTaskTitle('');
-      setDescription('');
+      setComment('');
       setPriority('low');
       setAssignedWorkers([]);
+      setScheduleFor('specific_day');
       setAssignedGroup('');
-      setIsRoutine(false);
       setDueDate(new Date());
-      setCreatedTasks(prev => [...prev, res.data]);
+ 
 
-      
+
     } catch (err) {
       Alert.alert('Error', err.response?.data?.msg || 'Failed to create task');
     }
@@ -79,19 +78,19 @@ export default function TaskManagementScreen() {
   }
 
   const fetchGroups = async () => {
-    try{
-       const res=await api.get('/api/groups');
-       setGroups(res.data);
-    }catch(err){
+    try {
+      const res = await api.get('/api/groups');
+      setGroups(res.data);
+    } catch (err) {
       Alert.alert('Error', 'Failed to load groups');
     }
   }
 
 
   useEffect(() => {
-      fetchAllTasks();
-      fetchUsers();
-      fetchGroups();
+    fetchAllTasks();
+    fetchUsers();
+    fetchGroups();
   }, []);
 
   const fetchUsers = async () => {
@@ -123,7 +122,7 @@ export default function TaskManagementScreen() {
     }
   };
 
- 
+
 
   const updateTask = async () => {
     try {
@@ -140,12 +139,12 @@ export default function TaskManagementScreen() {
   }
 
   const deleteTask = async (taskId) => {
-    try{
+    try {
       await api.delete(`/api/tasks/${taskId}`);
       Alert.alert('Success', 'Task deleted');
       setSelectedTaskDetails(null);
-      fetchAllTasks(); 
-    }catch(err) {
+      fetchAllTasks();
+    } catch (err) {
       Alert.alert('Error', 'Failed to delete task');
 
     }
@@ -158,7 +157,7 @@ export default function TaskManagementScreen() {
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.heading}>Task Management</Text>
 
-        {user?.isAdmin && (
+        
           <View style={styles.updateSection}>
             <Text style={styles.heading}>Create New Task</Text>
 
@@ -170,12 +169,12 @@ export default function TaskManagementScreen() {
             />
 
             <TextInput
-              placeholder="Description"
+              placeholder="Comment"
               style={styles.input}
               multiline
               numberOfLines={2}
-              value={description}
-              onChangeText={setDescription}
+              value={comment}
+              onChangeText={setComment}
             />
 
             <Text style={styles.label}>Priority</Text>
@@ -225,10 +224,20 @@ export default function TaskManagementScreen() {
               </Picker>
             </View>
 
-            <View style={styles.toggleContainer}>
-              <Text style={styles.label}>Is Routine Task?</Text>
-              <Switch value={isRoutine} onValueChange={setIsRoutine} />
-            </View>
+            <Text>Schedule For:</Text>
+            <Picker
+              selectedValue={scheduleFor}
+              style={styles.input}
+              onValueChange={(itemValue) => setScheduleFor(itemValue)}>
+              <Picker.Item label="Specific Day" value="specific_day" />
+              <Picker.Item label="Weekdays" value="week_days" />
+              <Picker.Item label="Weekends" value="week_ends" />
+              <Picker.Item label="Alternate Days" value="alternate_days" />
+              <Picker.Item label="Month" value="month" />
+              <Picker.Item label="Quarter" value="quarter" />
+              <Picker.Item label="Half Yearly" value="half_yearly" />
+              <Picker.Item label="Yearly" value="yearly" />
+            </Picker>
 
             <Text style={styles.label}>Due Date</Text>
             <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.dateText}>
@@ -259,21 +268,22 @@ export default function TaskManagementScreen() {
             </TouchableOpacity>
           </View>
 
-        )}
+        
 
-        {user?.isAdmin && allTasks.length > 0 && (
+        { allTasks.length > 0 && (
           <View style={{ marginTop: 30 }}>
             <Text style={styles.heading}>Created Tasks</Text>
             {allTasks.map((task) => (
               <TouchableOpacity
                 key={task._id}
                 style={styles.taskItem}
-                onPress={() => {setSelectedTaskDetails(task) }}
+                onPress={() => { setSelectedTaskDetails(task) }}
               >
                 <Text style={styles.taskTitle}>{task.title}</Text>
                 <Text style={styles.taskStatus}>Priority: {task.priority}</Text>
+                <Text style={styles.taskStatus}>scheduleFor: {task.scheduleFor}</Text>
                 <Text style={styles.taskStatus}>
-                  Group:{groups.find(group=>group._id===task.assignedGroup)?.name || 'None'}
+                  Group:{groups.find(group => group._id === task.assignedGroup)?.name || 'None'}
                 </Text>
                 <Text style={styles.taskStatus}>
                   Assigned Workers: {task.assignedWorkers?.length || 0}
@@ -288,19 +298,19 @@ export default function TaskManagementScreen() {
           <View style={styles.updateSection}>
             <Text style={styles.heading}>Task Details</Text>
             <Text style={styles.taskTitle}>Title: {selectedTaskDetails.title}</Text>
-            <Text style={styles.taskStatus}>Description: {selectedTaskDetails.description || 'N/A'}</Text>
+            <Text style={styles.taskStatus}>Comment: {selectedTaskDetails.comment || 'N/A'}</Text>
             <Text style={styles.taskStatus}>Priority: {selectedTaskDetails.priority}</Text>
             <Text style={styles.taskStatus}>
-              Group: {groups.find(group=>group._id===selectedTaskDetails.assignedGroup)?.name || 'None'}
+              Group: {groups.find(group => group._id === selectedTaskDetails.assignedGroup)?.name || 'None'}
             </Text>
             <Text style={styles.taskStatus}>
-              Workers: {selectedTaskDetails.assignedWorkers.map((id)=>{return users.find((user)=>user._id===id).name}).join(', ') || 'None'}
+              Workers: {selectedTaskDetails.assignedWorkers.map((id) => { return users.find((user) => user._id === id).name }).join(', ') || 'None'}
             </Text>
             <Text style={styles.taskStatus}>
               Due: {new Date(selectedTaskDetails.completeBy?.dueDate).toLocaleString()}
             </Text>
             <Text style={styles.taskStatus}>
-              Is Routine: {selectedTaskDetails.completeBy?.isRoutine ? 'Yes' : 'No'}
+              scheduled for: {selectedTaskDetails.scheduleFor}
             </Text>
             <Text style={styles.taskStatus}>Status: {selectedTaskDetails.status?.text}</Text>
 
@@ -309,7 +319,7 @@ export default function TaskManagementScreen() {
                 <Text style={styles.taskStatus}>Updates:</Text>
                 {selectedTaskDetails.status.updates.map((update, idx) => (
                   <View key={idx} style={{ marginBottom: 6, marginLeft: 10 }}>
-                    <Text style={styles.taskStatus}>- {update.description}</Text>
+                    <Text style={styles.taskStatus}>- {update.comment}</Text>
                     <Text style={styles.taskStatus}>
                       by {update.byUser?.name || 'Unknown'} on{' '}
                       {new Date(update.date).toLocaleString()}
@@ -321,24 +331,24 @@ export default function TaskManagementScreen() {
 
             {!isEditingTask ? (
               <View>
-              <TouchableOpacity
-                style={[styles.submitButton, { backgroundColor: '#007bff' }]}
-                onPress={() => {
-                  setIsEditingTask(true);
-                  setEditedTaskData({ ...selectedTaskDetails });
-                }}
-              >
-                <Text style={styles.submitText}>Update Task</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.submitButton, { backgroundColor: '#ff0033ff' }]}
-                onPress={() => {
+                <TouchableOpacity
+                  style={[styles.submitButton, { backgroundColor: '#007bff' }]}
+                  onPress={() => {
+                    setIsEditingTask(true);
+                    setEditedTaskData({ ...selectedTaskDetails });
+                  }}
+                >
+                  <Text style={styles.submitText}>Update Task</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.submitButton, { backgroundColor: '#ff0033ff' }]}
+                  onPress={() => {
                     deleteTask(selectedTaskDetails._id);
-                }}
-              >
-                <Text style={styles.submitText}>Delete Task</Text>
-              </TouchableOpacity>
-            </View>
+                  }}
+                >
+                  <Text style={styles.submitText}>Delete Task</Text>
+                </TouchableOpacity>
+              </View>
             ) : (
               <>
                 <TextInput
@@ -349,9 +359,9 @@ export default function TaskManagementScreen() {
                 />
                 <TextInput
                   style={styles.input}
-                  value={editedTaskData.description}
-                  onChangeText={(text) => setEditedTaskData({ ...editedTaskData, description: text })}
-                  placeholder="Description"
+                  value={editedTaskData.comment}
+                  onChangeText={(text) => setEditedTaskData({ ...editedTaskData, comment: text })}
+                  placeholder="comment"
                 />
                 <View style={styles.pickerWrapper}>
                   <Picker
@@ -364,17 +374,34 @@ export default function TaskManagementScreen() {
                   </Picker>
                 </View>
 
+                <Text>Schedule For:</Text>
+                <Picker
+                  selectedValue={editedTaskData.scheduleFor}
+                  style={styles.picker}
+                  onValueChange={(Value) => setEditedTaskData({ ...editedTaskData, scheduleFor: Value })}>
+                  <Picker.Item label="Specific Day" value="specific_day" />
+                  <Picker.Item label="Weekdays" value="week_days" />
+                  <Picker.Item label="Weekends" value="week_ends" />
+                  <Picker.Item label="Alternate Days" value="alternate_days" />
+                  <Picker.Item label="Month" value="month" />
+                  <Picker.Item label="Quarter" value="quarter" />
+                  <Picker.Item label="Half Yearly" value="half_yearly" />
+                  <Picker.Item label="Yearly" value="yearly" />
+                </Picker>
+
+
+
                 <Text style={styles.label}>Update Due Date</Text>
                 <TouchableOpacity
                   onPress={() => setShowDatePicker(true)}
                   style={styles.dateText}
                 >
-                  <Text>{new Date(editedTaskData.completeBy?.dueDate).toLocaleString()}</Text>
+                  <Text>{new Date(editedTaskData?.dueDate).toLocaleString()}</Text>
                 </TouchableOpacity>
 
                 {showDatePicker && (
                   <DateTimePicker
-                    value={new Date(editedTaskData.completeBy?.dueDate)}
+                    value={new Date(editedTaskData?.dueDate)}
                     mode="date"
                     display="default"
                     onChange={(e, selectedDate) => {
@@ -395,7 +422,7 @@ export default function TaskManagementScreen() {
 
                 {showTimePicker && (
                   <DateTimePicker
-                    value={new Date(editedTaskData.completeBy?.dueDate)}
+                    value={new Date(editedTaskData?.dueDate)}
                     mode="time"
                     display="default"
                     onChange={(e, selectedTime) => {
