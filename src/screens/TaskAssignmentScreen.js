@@ -9,6 +9,7 @@ import { AuthContext } from '../context/AuthContext';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import MultiSelect from 'react-native-multiple-select';
+import TaskEditComponent from '../Components/TaskEditComponent';
 
 
 export default function TaskManagementScreen() {
@@ -30,8 +31,8 @@ export default function TaskManagementScreen() {
 
   const [selectedTaskDetails, setSelectedTaskDetails] = useState(null);
 
-  const [isEditingTask, setIsEditingTask] = useState(false);
-  const [editedTaskData, setEditedTaskData] = useState(null);
+  
+  
 
 
   const handleCreateTask = async () => {
@@ -124,31 +125,7 @@ export default function TaskManagementScreen() {
 
 
 
-  const updateTask = async () => {
-    try {
-      console.log('Updating task with:', editedTaskData);
-      await api.put(`/api/tasks/${editedTaskData._id}`, editedTaskData);
-      Alert.alert('Success', 'Task updated');
-      setIsEditingTask(false);
-      setSelectedTaskDetails(null);
-      fetchAllTasks(); // Refresh the list
-    } catch (err) {
-      Alert.alert('Error', 'Failed to update task');
-      console.error(err);
-    }
-  }
-
-  const deleteTask = async (taskId) => {
-    try {
-      await api.delete(`/api/tasks/${taskId}`);
-      Alert.alert('Success', 'Task deleted');
-      setSelectedTaskDetails(null);
-      fetchAllTasks();
-    } catch (err) {
-      Alert.alert('Error', 'Failed to delete task');
-
-    }
-  }
+ 
 
 
 
@@ -274,8 +251,8 @@ export default function TaskManagementScreen() {
           <View style={{ marginTop: 30 }}>
             <Text style={styles.heading}>Created Tasks</Text>
             {allTasks.map((task) => (
+              <View key={task._id}>
               <TouchableOpacity
-                key={task._id}
                 style={styles.taskItem}
                 onPress={() => { setSelectedTaskDetails(task) }}
               >
@@ -290,183 +267,14 @@ export default function TaskManagementScreen() {
                 </Text>
                 <Text style={styles.taskStatus}>Status: {task.status?.text}</Text>
               </TouchableOpacity>
+              {selectedTaskDetails && selectedTaskDetails._id===task._id && <TaskEditComponent selectedTaskDetails={selectedTaskDetails} setSelectedTaskDetails={setSelectedTaskDetails} users={users} groups={groups}/>}
+              </View>
             ))}
+            
           </View>
         )}
 
-        {selectedTaskDetails && (
-          <View style={styles.updateSection}>
-            <Text style={styles.heading}>Task Details</Text>
-            <Text style={styles.taskTitle}>Title: {selectedTaskDetails.title}</Text>
-            <Text style={styles.taskStatus}>Comment: {selectedTaskDetails.comment || 'N/A'}</Text>
-            <Text style={styles.taskStatus}>Priority: {selectedTaskDetails.priority}</Text>
-            <Text style={styles.taskStatus}>
-              Group: {groups.find(group => group._id === selectedTaskDetails.assignedGroup)?.name || 'None'}
-            </Text>
-            <Text style={styles.taskStatus}>
-              Workers: {selectedTaskDetails.assignedWorkers.map((id) => { return users.find((user) => user._id === id).name }).join(', ') || 'None'}
-            </Text>
-            <Text style={styles.taskStatus}>
-              Due: {new Date(selectedTaskDetails.completeBy?.dueDate).toLocaleString()}
-            </Text>
-            <Text style={styles.taskStatus}>
-              scheduled for: {selectedTaskDetails.scheduleFor}
-            </Text>
-            <Text style={styles.taskStatus}>Status: {selectedTaskDetails.status?.text}</Text>
-
-            {selectedTaskDetails.status?.updates?.length > 0 && (
-              <View style={{ marginTop: 10 }}>
-                <Text style={styles.taskStatus}>Updates:</Text>
-                {selectedTaskDetails.status.updates.map((update, idx) => (
-                  <View key={idx} style={{ marginBottom: 6, marginLeft: 10 }}>
-                    <Text style={styles.taskStatus}>- {update.comment}</Text>
-                    <Text style={styles.taskStatus}>
-                      by {update.byUser?.name || 'Unknown'} on{' '}
-                      {new Date(update.date).toLocaleString()}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {!isEditingTask ? (
-              <View>
-                <TouchableOpacity
-                  style={[styles.submitButton, { backgroundColor: '#007bff' }]}
-                  onPress={() => {
-                    setIsEditingTask(true);
-                    setEditedTaskData({ ...selectedTaskDetails });
-                  }}
-                >
-                  <Text style={styles.submitText}>Update Task</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.submitButton, { backgroundColor: '#ff0033ff' }]}
-                  onPress={() => {
-                    deleteTask(selectedTaskDetails._id);
-                  }}
-                >
-                  <Text style={styles.submitText}>Delete Task</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <>
-                <TextInput
-                  style={styles.input}
-                  value={editedTaskData.title}
-                  onChangeText={(text) => setEditedTaskData({ ...editedTaskData, title: text })}
-                  placeholder="Title"
-                />
-                <TextInput
-                  style={styles.input}
-                  value={editedTaskData.comment}
-                  onChangeText={(text) => setEditedTaskData({ ...editedTaskData, comment: text })}
-                  placeholder="comment"
-                />
-                <View style={styles.pickerWrapper}>
-                  <Picker
-                    selectedValue={editedTaskData.priority}
-                    onValueChange={(value) => setEditedTaskData({ ...editedTaskData, priority: value })}
-                    style={styles.picker}
-                  >
-                    <Picker.Item label="Low" value="low" />
-                    <Picker.Item label="High" value="high" />
-                  </Picker>
-                </View>
-
-                <Text>Schedule For:</Text>
-                <Picker
-                  selectedValue={editedTaskData.scheduleFor}
-                  style={styles.picker}
-                  onValueChange={(Value) => setEditedTaskData({ ...editedTaskData, scheduleFor: Value })}>
-                  <Picker.Item label="Specific Day" value="specific_day" />
-                  <Picker.Item label="Weekdays" value="week_days" />
-                  <Picker.Item label="Weekends" value="week_ends" />
-                  <Picker.Item label="Alternate Days" value="alternate_days" />
-                  <Picker.Item label="Month" value="month" />
-                  <Picker.Item label="Quarter" value="quarter" />
-                  <Picker.Item label="Half Yearly" value="half_yearly" />
-                  <Picker.Item label="Yearly" value="yearly" />
-                </Picker>
-
-
-
-                <Text style={styles.label}>Update Due Date</Text>
-                <TouchableOpacity
-                  onPress={() => setShowDatePicker(true)}
-                  style={styles.dateText}
-                >
-                  <Text>{new Date(editedTaskData?.dueDate).toLocaleString()}</Text>
-                </TouchableOpacity>
-
-                {showDatePicker && (
-                  <DateTimePicker
-                    value={new Date(editedTaskData?.dueDate)}
-                    mode="date"
-                    display="default"
-                    onChange={(e, selectedDate) => {
-                      setShowDatePicker(false);
-                      if (selectedDate) {
-                        setEditedTaskData({
-                          ...editedTaskData,
-                          completeBy: {
-                            ...editedTaskData.completeBy,
-                            dueDate: selectedDate,
-                          },
-                        });
-                        setShowTimePicker(true);
-                      }
-                    }}
-                  />
-                )}
-
-                {showTimePicker && (
-                  <DateTimePicker
-                    value={new Date(editedTaskData?.dueDate)}
-                    mode="time"
-                    display="default"
-                    onChange={(e, selectedTime) => {
-                      setShowTimePicker(false);
-                      if (selectedTime) {
-                        const updatedDate = new Date(editedTaskData.completeBy?.dueDate);
-                        updatedDate.setHours(selectedTime.getHours());
-                        updatedDate.setMinutes(selectedTime.getMinutes());
-                        setEditedTaskData({
-                          ...editedTaskData,
-                          completeBy: {
-                            ...editedTaskData.completeBy,
-                            dueDate: updatedDate,
-                          },
-                        });
-                      }
-                    }}
-                  />
-                )}
-
-                <TouchableOpacity
-                  style={[styles.submitButton, { backgroundColor: '#28a745' }]}
-                  onPress={() => {
-                    updateTask();
-                  }}
-                >
-                  <Text style={styles.submitText}>Save Changes</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.submitButton, { backgroundColor: '#dc3545', marginTop: 10 }]}
-                  onPress={() => {
-                    setIsEditingTask(false);
-                    setEditedTaskData(null);
-                  }}
-                >
-                  <Text style={styles.submitText}>Cancel</Text>
-                </TouchableOpacity>
-              </>
-            )}
-
-          </View>
-        )}
-
+        
       </ScrollView>
     </LinearGradient>
   );
