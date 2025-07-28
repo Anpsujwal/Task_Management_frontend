@@ -1,98 +1,52 @@
-import React, { useEffect, useState, useContext } from 'react';
+import  { useEffect, useState,useContext } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity,
-  FlatList, StyleSheet, Alert, ScrollView, Switch
+  View, Text, TouchableOpacity,
+   StyleSheet, Alert, ScrollView,Button
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../api/api';
-import { AuthContext } from '../context/AuthContext';
-import { Picker } from '@react-native-picker/picker';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import MultiSelect from 'react-native-multiple-select';
-import TaskEditComponent from '../Components/TaskEditComponent';
 
+
+import TaskEditComponent from '../Components/TaskEditComponent';
+import GoBackToDashboard from '../Components/GoToDashboard';
+import TaskCreationForm from '../Components/TaskCreationForm';
+import FilterByDate from '../Components/FilterTaskByDate';
+
+import { AuthContext } from '../context/AuthContext';
 
 export default function TaskManagementScreen() {
+
   const { user } = useContext(AuthContext);
+
   const [allTasks, setAllTasks] = useState([]);
   const [users, setUsers] = useState([]);
+  const [group, setGroup] = useState([]);
 
-  const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [comment, setComment] = useState('');
-  const [priority, setPriority] = useState('low');
-  const [assignedWorkers, setAssignedWorkers] = useState([]);
-  const [assignedGroup, setAssignedGroup] = useState('');
-  const [scheduleFor, setScheduleFor] = useState('specific_day');
-  const [groups, setGroups] = useState([]);
-
-  const [dueDate, setDueDate] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [createNewTask, setCreateNewTask] = useState(false);
+  const [filterByDate, setFilterByDate] = useState(false);
+  const [filteredTasks, setFilteredTasks] = useState([]);
+  
 
   const [selectedTaskDetails, setSelectedTaskDetails] = useState(null);
 
-  
-  
-
-
-  const handleCreateTask = async () => {
-    try {
-      const payload = {
-        title: newTaskTitle,
-        comment,
-        priority,
-        assignedWorkers,
-        scheduleFor,
-        dueDate,
-
-      };
-
-      if (assignedGroup) {
-        payload.assignedGroup = assignedGroup; // only add if it's not empty
-      }
-      const res = await api.post('/api/tasks', payload);
-      fetchAllTasks();
-      Alert.alert('Success', 'Task created');
-      setNewTaskTitle('');
-      setComment('');
-      setPriority('low');
-      setAssignedWorkers([]);
-      setScheduleFor('specific_day');
-      setAssignedGroup('');
-      setDueDate(new Date());
- 
-
-
-    } catch (err) {
-      Alert.alert('Error', err.response?.data?.msg || 'Failed to create task');
-    }
-  };
-
-
   const fetchAllTasks = async () => {
     try {
-      const res = await api.get('/api/tasks');
+      const res = await api.get(`/api/tasks/createdby/${user._id}`);
       setAllTasks(res.data);
     } catch (err) {
       Alert.alert('Error', 'Unable to fetch all tasks');
     }
   }
 
-  const fetchGroups = async () => {
+  const fetchGroup = async () => {
     try {
-      const res = await api.get('/api/groups');
-      setGroups(res.data);
+      const res = await api.get(`/api/groups/${user.group}`);
+      setGroup(res.data);
     } catch (err) {
       Alert.alert('Error', 'Failed to load groups');
     }
   }
 
-
-  useEffect(() => {
-    fetchAllTasks();
-    fetchUsers();
-    fetchGroups();
-  }, []);
 
   const fetchUsers = async () => {
     try {
@@ -104,146 +58,50 @@ export default function TaskManagementScreen() {
     }
   };
 
-  const handleDateChange = (event, selectedDate) => {
-    setShowDatePicker(false);
-    if (selectedDate) {
-      const currentDate = new Date(selectedDate);
-      setDueDate(currentDate);
-      setShowTimePicker(true); // Open time picker next
-    }
-  };
+   useEffect(() => {
+    fetchAllTasks();
+    fetchUsers();
+    fetchGroup();
+    setSelectedTaskDetails(null);
+  },[]);
 
-  const handleTimeChange = (event, selectedTime) => {
-    setShowTimePicker(false);
-    if (selectedTime) {
-      const updatedDate = new Date(dueDate);
-      updatedDate.setHours(selectedTime.getHours());
-      updatedDate.setMinutes(selectedTime.getMinutes());
-      setDueDate(updatedDate);
-    }
-  };
-
-
-
- 
-
-
+  
 
   return (
     <LinearGradient colors={['#fdfbfb', '#ebedee']} style={styles.gradient}>
+      <GoBackToDashboard/>
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.heading}>Task Management</Text>
 
-        
-          <View style={styles.updateSection}>
-            <Text style={styles.heading}>Create New Task</Text>
+        {!createNewTask && <Button title="Create Task" onPress={()=>{setCreateNewTask(true);setFilterByDate(false)}}></Button>}
+        {!filterByDate && <Button title="Filter Tasks By Date" onPress={()=>{setFilterByDate(true);setCreateNewTask(false)}}></Button>}
 
-            <TextInput
-              placeholder="Task Title"
-              style={styles.input}
-              value={newTaskTitle}
-              onChangeText={setNewTaskTitle}
-            />
+        {createNewTask && <TaskCreationForm users={users} group={group} fetchAllTasks={fetchAllTasks} setCreateNewTask={setCreateNewTask}></TaskCreationForm>}
+        { filterByDate && <FilterByDate tasks={allTasks} setFilteredTasks={setFilteredTasks} setFilterByDate={setFilterByDate} />}
 
-            <TextInput
-              placeholder="Comment"
-              style={styles.input}
-              multiline
-              numberOfLines={2}
-              value={comment}
-              onChangeText={setComment}
-            />
-
-            <Text style={styles.label}>Priority</Text>
-            <View style={styles.pickerWrapper}>
-              <Picker
-                selectedValue={priority}
-                onValueChange={setPriority}
-                style={styles.picker}
+        { filteredTasks.length > 0 && (
+          <View style={{ marginTop: 30 }}>
+            <Text style={styles.heading}>Filtered Tasks</Text>
+            {filteredTasks.map((task) => (
+              <View key={task._id}>
+              <TouchableOpacity
+                style={styles.taskItem}
+                onPress={() => { setSelectedTaskDetails(task) }}
               >
-                <Picker.Item label="Low" value="low" />
-                <Picker.Item label="High" value="high" />
-              </Picker>
-            </View>
-
-
-            <MultiSelect
-              items={users}
-              uniqueKey="_id"
-              onSelectedItemsChange={setAssignedWorkers}
-              selectedItems={assignedWorkers}
-              selectText="Assign to Workers"
-              searchInputPlaceholderText="Search Users..."
-              tagRemoveIconColor="#ccc"
-              tagBorderColor="#ccc"
-              tagTextColor="#333"
-              selectedItemTextColor="#0077cc"
-              selectedItemIconColor="#0077cc"
-              itemTextColor="#000"
-              displayKey="name"
-              searchInputStyle={{ color: '#333' }}
-              submitButtonColor="#0077cc"
-              submitButtonText="Done"
-              styleMainWrapper={styles.multiSelectWrapper}
-            />
-
-            <Text style={styles.label}>Assign to Group</Text>
-            <View style={styles.pickerWrapper}>
-              <Picker
-                selectedValue={assignedGroup}
-                onValueChange={setAssignedGroup}
-                style={styles.picker}
-              >
-                <Picker.Item label="Select group" value="" />
-                {groups.map(g => (
-                  <Picker.Item key={g._id} label={g.name} value={g._id} />
-                ))}
-              </Picker>
-            </View>
-
-            <Text>Schedule For:</Text>
-            <Picker
-              selectedValue={scheduleFor}
-              style={styles.input}
-              onValueChange={(itemValue) => setScheduleFor(itemValue)}>
-              <Picker.Item label="Specific Day" value="specific_day" />
-              <Picker.Item label="Weekdays" value="week_days" />
-              <Picker.Item label="Weekends" value="week_ends" />
-              <Picker.Item label="Alternate Days" value="alternate_days" />
-              <Picker.Item label="Month" value="month" />
-              <Picker.Item label="Quarter" value="quarter" />
-              <Picker.Item label="Half Yearly" value="half_yearly" />
-              <Picker.Item label="Yearly" value="yearly" />
-            </Picker>
-
-            <Text style={styles.label}>Due Date</Text>
-            <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.dateText}>
-              <Text>{dueDate.toLocaleString()}</Text>
-            </TouchableOpacity>
-
-            {showDatePicker && (
-              <DateTimePicker
-                value={dueDate}
-                mode="date"
-                display="default"
-                onChange={handleDateChange}
-              />
-            )}
-
-            {showTimePicker && (
-              <DateTimePicker
-                value={dueDate}
-                mode="time"
-                display="default"
-                onChange={handleTimeChange}
-              />
-            )}
-
-
-            <TouchableOpacity style={styles.submitButton} onPress={handleCreateTask}>
-              <Text style={styles.submitText}>Create Task</Text>
-            </TouchableOpacity>
+                <Text style={styles.taskTitle}>{task.title}</Text>
+                <Text style={styles.taskStatus}>Priority: {task.priority}</Text>
+                <Text style={styles.taskStatus}>scheduleFor: {task.scheduleFor}</Text>
+                <Text style={styles.taskStatus}>
+                  Assigned Workers: {task.assignedWorkers?.length || 0}
+                </Text>
+                <Text style={styles.taskStatus}>Status: {task.status?.text}</Text>
+              </TouchableOpacity>
+              {selectedTaskDetails && selectedTaskDetails._id===task._id && <TaskEditComponent selectedTaskDetails={selectedTaskDetails} setSelectedTaskDetails={setSelectedTaskDetails} users={users} groups={groups} fetchTasks={fetchAllTasks}/>}
+              </View>
+            ))}
+            
           </View>
+        )}
 
         
 
@@ -260,14 +118,16 @@ export default function TaskManagementScreen() {
                 <Text style={styles.taskStatus}>Priority: {task.priority}</Text>
                 <Text style={styles.taskStatus}>scheduleFor: {task.scheduleFor}</Text>
                 <Text style={styles.taskStatus}>
-                  Group:{groups.find(group => group._id === task.assignedGroup)?.name || 'None'}
+                  Group:{group?.name || 'None'}
                 </Text>
                 <Text style={styles.taskStatus}>
-                  Assigned Workers: {task.assignedWorkers?.length || 0}
+                  Workers:{task.assignToEntireGroup? 'Assigned to entire group' : 
+                   task.assignedWorkers?.length || 0}
+                
                 </Text>
                 <Text style={styles.taskStatus}>Status: {task.status?.text}</Text>
               </TouchableOpacity>
-              {selectedTaskDetails && selectedTaskDetails._id===task._id && <TaskEditComponent selectedTaskDetails={selectedTaskDetails} setSelectedTaskDetails={setSelectedTaskDetails} users={users} groups={groups}/>}
+              {selectedTaskDetails && selectedTaskDetails._id===task._id && <TaskEditComponent selectedTaskDetails={selectedTaskDetails} setSelectedTaskDetails={setSelectedTaskDetails} users={users}  fetchTasks={fetchAllTasks}/>}
               </View>
             ))}
             

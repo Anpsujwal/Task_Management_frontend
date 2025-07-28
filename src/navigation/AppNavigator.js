@@ -9,7 +9,7 @@ import UserManagementScreen from '../screens/UserManagementScreen';
 import TaskManagementScreen from '../screens/TaskAssignmentScreen';
 import TaskReportScreen from '../screens/TaskReport';
 import TaskDashboard from '../screens/WorkerTaskPanel';
-
+import WorkerTaskReport from '../screens/WorkerReportScreen';
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
@@ -24,6 +24,7 @@ export default function AppNavigator() {
         <Stack.Screen name="TaskManagement" component={TaskManagementScreen} />
         <Stack.Screen name="TaskReports" component={TaskReportScreen}/>
         <Stack.Screen name="WorkerTaskPanel" component={TaskDashboard} />
+        <Stack.Screen name="WorkerTaskReport" component={WorkerTaskReport}/>
       </Stack.Navigator>
     </NavigationContainer>
   );

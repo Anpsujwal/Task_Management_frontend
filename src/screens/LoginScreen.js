@@ -55,9 +55,6 @@ export default function LoginScreen({ navigation }) {
             <Text style={styles.buttonText}>Login</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
-            <Text style={styles.signupLink}>Don't have an account? Sign up</Text>
-          </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
     </LinearGradient>

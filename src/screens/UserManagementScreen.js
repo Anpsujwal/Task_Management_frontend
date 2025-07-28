@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import {
   View, Text, TextInput, FlatList, StyleSheet,
   Alert, TouchableOpacity, ScrollView, Switch
@@ -6,28 +6,26 @@ import {
 import { Picker } from '@react-native-picker/picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../api/api';
-
+import GoBackToDashboard from '../Components/GoToDashboard';
+import { AuthContext } from '../context/AuthContext';
 export default function UserManagementScreen() {
+
+  const { user } = useContext(AuthContext);
+
   const [users, setUsers] = useState([]);
+  const [filteredUsers, setFilteredUsers] = useState([]);
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [userId, setUserId] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [adminType, setAdminType] = useState(false);
   const [editingUserId, setEditingUserId] = useState(null);
   const [editName, setEditName] = useState('');
   const [editIsAdmin, setEditIsAdmin] = useState(false);
+  const [editAdminType, setEditAdminType] = useState(false);
   const [assignedGroup, setAssignedGroup] = useState('');
   const [groups, setGroups] = useState([]);
 
-  const fetchUsers = async () => {
-    try {
-      const res = await api.get('/api/users');
-      setUsers(res.data);
-    } catch (err) {
-      console.error('Error fetching users:', err);
-      Alert.alert("Error", "Unable to fetch users");
-    }
-  };
 
   const handleCreateUser = async () => {
     if (!name || !password) {
@@ -35,7 +33,7 @@ export default function UserManagementScreen() {
       return;
     }
     try {
-      payload={
+      payload = {
         name,
         userId,
         password,
@@ -44,12 +42,22 @@ export default function UserManagementScreen() {
       if (assignedGroup) {
         payload.group = assignedGroup;
       }
-      await api.post('/api/auth/signup', payload);
+      if (isAdmin) {
+        if (adminType) payload.adminType = "root";
+        else payload.adminType = "group";
+      }
+      const res = await api.post('/api/auth/signup', payload);
+
+      await api.patch(`/api/groups/${assignedGroup}/addUser`, { userId: res.data.id });
+
+      console.log("group updated successfully");
+
 
       setName('');
       setUserId('');
       setPassword('');
       setIsAdmin(false);
+      setAdminType(false);
       fetchUsers();
       setAssignedGroup('');
 
@@ -75,6 +83,7 @@ export default function UserManagementScreen() {
     setEditingUserId(user._id);
     setEditName(user.name);
     setEditIsAdmin(user.isAdmin);
+    setEditAdminType(user.adminType === "root");
   };
 
   const handleUpdateUser = async () => {
@@ -91,11 +100,29 @@ export default function UserManagementScreen() {
       Alert.alert("Error", "Failed to update user");
     }
   };
+
+  const fetchUsers = async () => {
+    try {
+      const res = await api.get('/api/users');
+
+      setUsers(res.data);
+    } catch (err) {
+      console.error('Error fetching users:', err);
+      Alert.alert("Error", "Unable to fetch users");
+    }
+  };
+
   const fetchGroups = async () => {
-    try{
-       const res=await api.get('/api/groups');
-       setGroups(res.data);
-    }catch(err){
+    try {
+      if (user.adminType === "group") {
+        const res = await api.get(`/api/groups/${user.group}`);
+        setGroups([res.data]);
+        setAssignedGroup(user.group);
+        return;
+      }
+      const res = await api.get('/api/groups');
+      setGroups(res.data);
+    } catch (err) {
       Alert.alert('Error', 'Failed to load groups');
     }
   }
@@ -107,8 +134,16 @@ export default function UserManagementScreen() {
     fetchGroups();
   }, []);
 
+  
+
+  useEffect(() => {
+    if (user.adminType === "group") setFilteredUsers(users.filter(u => u.group === user.group));
+    else setFilteredUsers( users);
+  }, [users]);
+
   return (
     <LinearGradient colors={['#ece9e6', '#ffffff']} style={styles.gradient}>
+      <GoBackToDashboard />
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.heading}>User Management</Text>
 
@@ -143,6 +178,19 @@ export default function UserManagementScreen() {
             <Text style={[styles.label, isAdmin && styles.selected]}>Admin</Text>
           </View>
 
+          {isAdmin &&
+            <View style={styles.toggleContainer}>
+              <Text style={[styles.label, !adminType && styles.selected]}>Group Admin</Text>
+              <Switch
+                value={adminType}
+                onValueChange={setAdminType}
+                thumbColor={isAdmin ? '#1e90ff' : '#f4f3f4'}
+                trackColor={{ false: '#767577', true: '#81b0ff' }}
+              />
+              <Text style={[styles.label, adminType && styles.selected]}>Root Admin</Text>
+            </View>
+          }
+
           <Text style={styles.label}>Assign to Group</Text>
           <View style={styles.input}>
             <Picker
@@ -162,18 +210,18 @@ export default function UserManagementScreen() {
           </TouchableOpacity>
         </View>
 
-        {users.length > 0 ? (
+        {filteredUsers?.length > 0 ? (
           <View>
             <Text style={styles.heading}>Existing Users</Text>
             <FlatList
-              data={users}
+              data={filteredUsers}
               keyExtractor={item => item._id}
               renderItem={({ item }) => (
                 <View style={styles.userItem}>
                   <Text style={styles.userName}>ID: {item.userId}</Text>
                   <Text style={styles.userEmail}>Name: {item.name}</Text>
-                  <Text style={styles.userRole}>Role: {item.isAdmin ? 'Admin' : 'User'}</Text>
-                  <Text>Group:{groups.filter((group)=>group._id===item.group)[0]?.name}</Text>
+                  <Text style={styles.userRole}>Role: {item.isAdmin ? `${item.adminType} Admin` : 'worker'}</Text>
+                  <Text>Group:{groups.find((group) => group._id === item.group)?.name}</Text>
 
                   <View style={styles.buttonRow}>
                     <TouchableOpacity
@@ -208,6 +256,17 @@ export default function UserManagementScreen() {
                         />
                         <Text style={[styles.label, editIsAdmin && styles.selected]}>Admin</Text>
                       </View>
+                      {editIsAdmin &&
+                        <View style={styles.toggleContainer}>
+                          <Text style={[styles.label, !editAdminType && styles.selected]}>Group Admin</Text>
+                          <Switch
+                            value={editAdminType}
+                            onValueChange={setEditAdminType}
+                            thumbColor={isAdmin ? '#1e90ff' : '#f4f3f4'}
+                            trackColor={{ false: '#767577', true: '#81b0ff' }}
+                          />
+                          <Text style={[styles.label, editAdminType && styles.selected]}>Root Admin</Text>
+                        </View>}
                       <TouchableOpacity
                         style={[styles.button, { marginTop: 10 }]}
                         onPress={handleUpdateUser}

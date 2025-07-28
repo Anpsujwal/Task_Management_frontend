@@ -14,7 +14,7 @@ export default function DashboardScreen({ navigation }) {
       <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={styles.card}>
           <Text style={styles.heading}>Welcome, {user?.name}</Text>
-          <Text style={styles.role}>Role: {user?.isAdmin ? 'Admin' : 'user'}</Text>
+          <Text style={styles.role}>Role: {user?.isAdmin ? `${user.adminType} Admin` : 'worker'}</Text>
 
           {user?.isAdmin && (
             <>
@@ -32,12 +32,14 @@ export default function DashboardScreen({ navigation }) {
                 <Text style={styles.buttonText}>User Management</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.button}
-                onPress={() => navigation.navigate('GroupManagement')}
-              >
-                <Text style={styles.buttonText}>Group Management</Text>
-              </TouchableOpacity>
+              {user.adminType === 'root' &&
+                <TouchableOpacity
+                  style={styles.button}
+                  onPress={() => navigation.navigate('GroupManagement')}
+                >
+                  <Text style={styles.buttonText}>Group Management</Text>
+                </TouchableOpacity>
+              }
 
               <TouchableOpacity
                 style={styles.button}
@@ -49,12 +51,20 @@ export default function DashboardScreen({ navigation }) {
           )}
 
           {!user?.isAdmin && (
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => navigation.navigate('WorkerTaskPanel')}
-            >
-              <Text style={styles.buttonText}>Assigned Tasks</Text>
-            </TouchableOpacity>
+            <View>
+              <TouchableOpacity
+                style={styles.button}
+                onPress={() => navigation.navigate('WorkerTaskReport')}
+              >
+                <Text style={styles.buttonText}>Task Report</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.button}
+                onPress={() => navigation.navigate('WorkerTaskPanel')}
+              >
+                <Text style={styles.buttonText}>Assigned Tasks</Text>
+              </TouchableOpacity>
+            </View>
           )}
 
 

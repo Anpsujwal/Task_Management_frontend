@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, SafeAreaView, StyleSheet, ScrollView } from 'react-native';
 import { Text, TextInput, Button, Card, Title, Switch, IconButton, Divider, Chip } from 'react-native-paper';
 import { Picker } from '@react-native-picker/picker';
+import GoBackToDashboard from '../Components/GoToDashboard';
 
 const AdminPanel = () => {
   const [taskTitle, setTaskTitle] = useState('');
@@ -43,6 +44,7 @@ const AdminPanel = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <GoBackToDashboard/>
       <ScrollView contentContainerStyle={styles.container}>
 
         <Title style={styles.heading}>🗂️ Admin Panel - Task Assignment</Title>

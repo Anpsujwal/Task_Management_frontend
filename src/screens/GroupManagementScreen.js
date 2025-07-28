@@ -6,6 +6,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../api/api';
 import MultiSelect from 'react-native-multiple-select';
+import GoBackToDashboard from '../Components/GoToDashboard';
 
 export default function GroupManagementScreen() {
   const [groupName, setGroupName] = useState('');
@@ -82,11 +83,25 @@ export default function GroupManagementScreen() {
   useEffect(() => {
     fetchGroups();
     fetchAllUsers();
+    setExpandedGroupId(null);
   }, []);
+
+  const deleteGroup=async (groupId) => {
+    try {
+      await api.delete(`/api/groups/${groupId}`);
+      fetchGroups();
+      Alert.alert('Success', 'Group deleted');
+    } catch (err) {
+      console.error(err);
+      Alert.alert('Error', err.response?.data?.msg || 'Failed to delete group');
+    }
+  }
 
   return (
     <LinearGradient colors={['#8e9eab', '#eef2f3']} style={styles.gradient}>
+      
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
+        <GoBackToDashboard></GoBackToDashboard>
         <ScrollView contentContainerStyle={styles.scroll}>
           <View style={styles.card}>
             <Text style={styles.heading}>Group Management</Text>
@@ -212,6 +227,7 @@ export default function GroupManagementScreen() {
                           </TouchableOpacity>
                         </View>
                       ) : (
+                        <View>
                         <TouchableOpacity
                           style={[styles.button, { marginTop: 10 }]}
                           onPress={() => {
@@ -222,6 +238,14 @@ export default function GroupManagementScreen() {
                         >
                           <Text style={styles.buttonText}>Update Group</Text>
                         </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.button, { marginTop: 10 }]}
+                          onPress={() => {deleteGroup(item._id);
+                          }}
+                        >
+                          <Text style={styles.buttonText}>Delete Group</Text>
+                        </TouchableOpacity>
+                       </View>
                       )}
                     </>
                   )}

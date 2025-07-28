@@ -1,12 +1,13 @@
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image, ScrollView,Button} from "react-native";
-import React, { useEffect, useState ,useContext} from "react";
+import  { useEffect, useState,useContext } from "react";
 import api from "../api/api";
 import {Video, Audio } from "expo-av";
 import GoBackToDashboard from "../Components/GoToDashboard";
 import { AuthContext } from "../context/AuthContext";
 
 
-export default function TaskDashboard() {
+
+export default function WorkerTaskReport() {
   const {user}=useContext(AuthContext);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,14 +16,8 @@ export default function TaskDashboard() {
   useEffect(() => {
     const fetchTasks = async () => {
       try {
-        if (user.adminType === "group") {
-          const res=await api.get(`api/tasks/createdby/${user._id}`);
-          setTasks(res.data);
-          console.log(res.data);
-        }else{
-        const res = await api.get("/api/tasks");
+        const res = await api.get(`/api/tasks/alltasks/user/${user._id}`);
         setTasks(res.data);
-        }
       } catch (err) {
         console.error("Error fetching tasks:", err);
         alert("Unable to fetch tasks");
@@ -36,10 +31,10 @@ export default function TaskDashboard() {
   const now = new Date();
 
   const categorizedCounts = {
-    pending: tasks?.filter(t => t.status?.text === "pending").length,
-    in_progress: tasks?.filter(t => t.status?.text === "in_progress").length,
-    completed: tasks?.filter(t => t.status?.text === "completed").length,
-    overdue: tasks?.filter(t => {
+    pending: tasks.filter(t => t.status?.text === "pending").length,
+    in_progress: tasks.filter(t => t.status?.text === "in_progress").length,
+    completed: tasks.filter(t => t.status?.text === "completed").length,
+    overdue: tasks.filter(t => {
       return (
         (t.status?.text !== "completed") &&
         t.completeBy?.dueDate &&
@@ -48,7 +43,7 @@ export default function TaskDashboard() {
     }).length,
   };
 
-  const filteredTasks = tasks?.filter(task => {
+  const filteredTasks = tasks.filter(task => {
     if (!selectedCategory) return false;
 
     if (selectedCategory === "overdue") {
@@ -129,28 +124,25 @@ export default function TaskDashboard() {
                     : "N/A"}
                 </Text>
                 <Text>Created At: {item.createdDate}</Text>
-                {item.image?.hasImage &&
+                {item.status?.image &&
                 <Image
                   source={{ uri: `${api.defaults.baseURL}/api/tasks/${item._id}/image` }}
                   style={{ width: 200, height: 200 }}
                 />
-                }
-            
+            }
                 
-                {item.video?.hasVideo &&
+                { item.status?.video &&
                 <Video
                   source={{ uri: `${api.defaults.baseURL}/api/tasks/${item._id}/video` }}
                   style={{ width: 600, height: 600 }}
                   useNativeControls
                   resizeMode="contain"
                   isLooping
-                />}
-                
-            
-                {item.audio?.hasAudio &&
+                />
+            }
+                {item.status?.audio &&
                 <Button title="Play Audio" onPress={()=>{playAudio(item._id)}} />
-              }
-            
+            }
               </View>
                 
             )}

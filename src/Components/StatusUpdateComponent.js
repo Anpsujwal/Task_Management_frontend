@@ -25,9 +25,17 @@ export default function StatusUpdateForm({ task, user, onClose, onSuccess }) {
 
     useEffect(() => {
         (async () => {
-            await ImagePicker.requestCameraPermissionsAsync();
-            await Audio.requestPermissionsAsync();
-            await MediaLibrary.requestPermissionsAsync();
+            const cameraPerm = await ImagePicker.requestCameraPermissionsAsync();
+
+            // Media Library (if uploading or saving files)
+            const mediaPerm = await MediaLibrary.requestPermissionsAsync();
+
+            // Audio (for recording audio or audio in video)
+            const { granted: audioPerm } = await Audio.requestPermissionsAsync();
+
+            if (!cameraPerm.granted || !mediaPerm.granted || !audioPerm) {
+                alert('Camera, audio, and media permissions are required.');
+            }
         })();
     }, []);
 
@@ -53,7 +61,7 @@ export default function StatusUpdateForm({ task, user, onClose, onSuccess }) {
 
     const pickVideo = async () => {
         let result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: 'videos',
+            mediaTypes: ImagePicker.MediaTypeOptions.Videos,
             quality: 1
         });
 
@@ -63,7 +71,7 @@ export default function StatusUpdateForm({ task, user, onClose, onSuccess }) {
 
     const recordVideo = async () => {
         let result = await ImagePicker.launchCameraAsync({
-            mediaTypes: 'videos',
+            mediaTypes: ImagePicker.MediaTypeOptions.Videos,
             quality: 1
         });
 
@@ -82,7 +90,7 @@ export default function StatusUpdateForm({ task, user, onClose, onSuccess }) {
                 playsInSilentModeIOS: true,
             });
 
-            const {recording} = await Audio.Recording.createAsync(
+            const { recording } = await Audio.Recording.createAsync(
                 Audio.RecordingOptionsPresets.HIGH_QUALITY
             );
 
