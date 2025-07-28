@@ -40,14 +40,16 @@ export default function DashboardScreen({ navigation }) {
                   <Text style={styles.buttonText}>Group Management</Text>
                 </TouchableOpacity>
               }
-
-              <TouchableOpacity
-                style={styles.button}
-                onPress={() => navigation.navigate('TaskManagement')}
-              >
-                <Text style={styles.buttonText}>Task Management</Text>
-              </TouchableOpacity>
+              {user.adminType === 'group' &&
+                <TouchableOpacity
+                  style={styles.button}
+                  onPress={() => navigation.navigate('TaskManagement')}
+                >
+                  <Text style={styles.buttonText}>Task Management</Text>
+                </TouchableOpacity>
+           }     
             </>
+            
           )}
 
           {!user?.isAdmin && (
