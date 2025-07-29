@@ -8,7 +8,7 @@ import { AuthContext } from '../context/AuthContext';
 import StatusUpdateForm from '../Components/StatusUpdateComponent';
 import GoBackToDashboard from '../Components/GoToDashboard';
 import FilterByDate from '../Components/FilterTaskByDate';
-import { ScrollView } from 'react-native-web';
+import { ScrollView } from 'react-native';
 
 export default function TaskDashboard() {
   const { user } = useContext(AuthContext);
