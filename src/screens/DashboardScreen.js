@@ -40,14 +40,25 @@ export default function DashboardScreen({ navigation }) {
                   <Text style={styles.buttonText}>Group Management</Text>
                 </TouchableOpacity>
               }
+              {user.adminType === 'group' &&
+              <>
+                <TouchableOpacity
+                  style={styles.button}
+                  onPress={() => navigation.navigate('TaskManagement')}
+                >
+                  <Text style={styles.buttonText}>Task Management</Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.button}
-                onPress={() => navigation.navigate('TaskManagement')}
-              >
-                <Text style={styles.buttonText}>Task Management</Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.button}
+                  onPress={() => navigation.navigate('AdminTicketManagement')}
+                >
+                  <Text style={styles.buttonText}>Tickets Generated</Text>
+                </TouchableOpacity>
+                </>
+           }     
             </>
+            
           )}
 
           {!user?.isAdmin && (
@@ -64,16 +75,27 @@ export default function DashboardScreen({ navigation }) {
               >
                 <Text style={styles.buttonText}>Assigned Tasks</Text>
               </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.button}
+                onPress={() => navigation.navigate('WorkerTicketManagement')}
+              >
+                <Text style={styles.buttonText}>Ticket Management</Text>
+              </TouchableOpacity>
             </View>
           )}
 
-
+          <TouchableOpacity
+                style={styles.button}
+                onPress={() => navigation.navigate('TicketReportScreen')}
+              >
+                <Text style={styles.buttonText}>Ticket Report</Text>
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.logoutButton}
             onPress={() => {
               logout();
-              navigation.replace('Login');
+              navigation.replace('UserTypeSelection');
             }}
           >
             <Text style={styles.logoutText}>Logout</Text>

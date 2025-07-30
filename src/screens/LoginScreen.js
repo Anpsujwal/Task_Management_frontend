@@ -5,20 +5,26 @@ import {
 } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
 import api from '../api/api';
-import { LinearGradient } from 'expo-linear-gradient'; 
+import { LinearGradient } from 'expo-linear-gradient';
 
-const { width } = Dimensions.get('window');
 
-export default function LoginScreen({ navigation }) {
+export default function LoginScreen({ navigation, route }) {
   const { login } = useContext(AuthContext);
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
-
+  const {userType}=route.params || {};
   const handleLogin = async () => {
     try {
-      const res = await api.post('/api/auth/login', { userId, password });
-      login(res.data.user);
-      navigation.replace('Dashboard');
+      if (userType === "staff") {
+        const res = await api.post('/api/auth/login', { userId, password });
+        login({ userData: res.data.user, type: res.data.type });
+        navigation.replace('Dashboard');
+      }
+      else if (userType === "tenant") {
+        const res = await api.post('/api/user1/login', { userId, password });
+        login({ userData: res.data.user, type: res.data.type });
+        navigation.replace('UserDashboard');
+      }
     } catch (err) {
       Alert.alert("Login Failed", err.response?.data?.message || "Something went wrong");
     }
@@ -39,7 +45,7 @@ export default function LoginScreen({ navigation }) {
             style={styles.input}
             value={userId}
             onChangeText={setUserId}
-            keyboardType="default" 
+            keyboardType="default"
             autoCapitalize="none"
           />
           <TextInput
@@ -54,6 +60,17 @@ export default function LoginScreen({ navigation }) {
           <TouchableOpacity style={styles.button} onPress={handleLogin}>
             <Text style={styles.buttonText}>Login</Text>
           </TouchableOpacity>
+
+          {userType === "tenant" &&
+            <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
+              <Text style={styles.signupLink}>Don't have an account? SignUp</Text>
+            </TouchableOpacity>
+          }
+          
+          <TouchableOpacity onPress={() => navigation.navigate('UserTypeSelection')}>
+              <Text style={styles.signupLink}>Go to User Selection Tab</Text>
+          </TouchableOpacity>
+
 
         </View>
       </KeyboardAvoidingView>
