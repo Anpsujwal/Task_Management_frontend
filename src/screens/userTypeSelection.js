@@ -2,11 +2,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
 export default function RoleSelectionScreen({ navigation }) {
   const handleSelection = (role) => {
-    if (role === 'tenant') {
-      navigation.navigate('TenantLogin'); 
-    } else {
-      navigation.navigate('StaffLogin');  
-    }
+      navigation.navigate('Login',{userType : role});  
   };
 
   return (

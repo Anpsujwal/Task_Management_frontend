@@ -12,21 +12,20 @@ export default function SignupScreen({ navigation }) {
   const [userId, setUserId] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
+  const [flatNo,setFlatNo]=useState('')
   
 
   const handleSignup = async () => {
     try {
-      console.log('Signing up with:', { userId, name, password });
-      const res=await api.post('/api/auth/signup', {userId, name, password });
-      if(res.status == 409){
-        Alert.alert( "userId already exists. Please choose a different one.");
-      } 
-      else if (res.status == 200) {
-        Alert.alert("Success", "Account created. Please log in.");
-        navigation.navigate('Login');
+      if(!userId || !name || !password || !flatNo){
+        return Alert.alert( "Enter all Details");
       }
+      const res=await api.post('/api/user1/signup', {userId, name, password,flatNo });
+      if(res.status == 409){
+        return Alert.alert( "userId already exists. Please choose a different one.");
+      } 
       Alert.alert("Success", "Account created. Please log in.");
-      navigation.navigate('Login');
+      navigation.navigate('Login',{userType:'tenant'});
     } catch (err) {
       Alert.alert("Signup Failed", err.response?.data?.msg || "Something went wrong");
     }
@@ -65,13 +64,22 @@ export default function SignupScreen({ navigation }) {
             onChangeText={setPassword}
             secureTextEntry
           />
+
+           <TextInput
+            placeholder="Flat No."
+            placeholderTextColor="#aaa"
+            style={styles.input}
+            value={flatNo}
+            onChangeText={setFlatNo}
+            secureTextEntry
+          />
            
 
           <TouchableOpacity style={styles.button} onPress={handleSignup}>
             <Text style={styles.buttonText}>Signup</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+          <TouchableOpacity onPress={() => navigation.navigate('Login',{userType:'tenant'})}>
             <Text style={styles.loginLink}>Already have an account? Login</Text>
           </TouchableOpacity>
         </View>

@@ -7,7 +7,7 @@ import { AuthContext } from "../context/AuthContext";
 
 
 export default function TaskDashboard() {
-  const {user}=useContext(AuthContext);
+  const {user,type}=useContext(AuthContext);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState(null); 
@@ -15,7 +15,11 @@ export default function TaskDashboard() {
   useEffect(() => {
     const fetchTasks = async () => {
       try {
-        if (user.adminType === "group") {
+        if(type==="tenant"){
+          const res=await api.get(`api/tickets/createdby/${user._id}`);
+          setTasks(res.data);
+        }
+        else if (user.adminType === "group") {
           const res=await api.get(`api/tasks/createdby/${user._id}`);
           setTasks(res.data);
           console.log(res.data);
@@ -79,7 +83,7 @@ export default function TaskDashboard() {
 
   async function playAudio(id) {
     await Audio.Sound.createAsync(
-      { uri: `${api.defaults.baseURL}/api/tasks/${id}/audio` },
+      { uri: `${api.defaults.baseURL}api/tasks/${id}/audio` },
       { shouldPlay: true }
     );
   
@@ -88,7 +92,7 @@ export default function TaskDashboard() {
   return (
     <View style={styles.container}>
       <GoBackToDashboard/>
-      <Text style={styles.title}>Task Summary</Text>
+      {type==="tenant" ?<Text style={styles.title}>Ticket Summary</Text>:<Text style={styles.title}>Task Summary</Text>}
 
       <View style={styles.cardRow}>
         {categories.map(cat => (
@@ -105,41 +109,43 @@ export default function TaskDashboard() {
 
       {selectedCategory && (
         <>
-          <Text style={styles.subTitle}>Tasks: {categories.find(c => c.key === selectedCategory)?.label}</Text>
+          <Text style={styles.subTitle}>{type==="tenant" ?"Tickets":"Tasks"} {categories.find(c => c.key === selectedCategory)?.label}</Text>
           <FlatList
             data={filteredTasks}
             keyExtractor={item => item._id}
             renderItem={({ item }) => (
               <View style={styles.taskCard}>
                 <Text style={styles.taskTitle}>{item.title}</Text>
+                <Text>Comment : <Text style={styles.status}>{item.comment}</Text></Text>
                 <Text>Status : <Text style={styles.status}>{item.status?.text}</Text></Text>
                 {(selectedCategory==="pending" || selectedCategory==="overdue") && <Text>
                   Assigned To : {" "}
-                  {item.assignedWorkers?.length > 0
+                  {type==="tenant" ? (item.assignedWorkers?.length > 0 ?'Worker(s) assigned' :'Workers not assigned') :
+                   (item.assignedWorkers?.length > 0
                     ? `${item.assignedWorkers.length} worker(s)`
-                    : item.assignedGroup?.name || "Unassigned"}
+                    : "Assigned to group")}
                 </Text>}
                 <Text>
                   days from creation : {Math.floor((new Date() - new Date(item.createdDate)) / (1000 * 60 * 60 * 24))}
                 </Text>
-                <Text>
+                {type==="staff" && <Text>
                   Due Date : {" "}
                   {item.dueDate
                     ? item.dueDate
                     : "N/A"}
-                </Text>
+                </Text>}
                 <Text>Created At: {item.createdDate}</Text>
-                {item.image?.hasImage &&
+                {item.status.image?.hasImage &&
                 <Image
-                  source={{ uri: `${api.defaults.baseURL}/api/tasks/${item._id}/image` }}
+                  source={{ uri: `${api.defaults.baseURL}api/tasks/${item._id}/image` }}
                   style={{ width: 200, height: 200 }}
                 />
                 }
             
                 
-                {item.video?.hasVideo &&
+                {item.status.video?.hasVideo &&
                 <Video
-                  source={{ uri: `${api.defaults.baseURL}/api/tasks/${item._id}/video` }}
+                  source={{ uri: `${api.defaults.baseURL}api/tasks/${item._id}/video` }}
                   style={{ width: 600, height: 600 }}
                   useNativeControls
                   resizeMode="contain"
@@ -147,7 +153,7 @@ export default function TaskDashboard() {
                 />}
                 
             
-                {item.audio?.hasAudio &&
+                {item.status.audio?.hasAudio &&
                 <Button title="Play Audio" onPress={()=>{playAudio(item._id)}} />
               }
             

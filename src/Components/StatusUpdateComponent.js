@@ -10,7 +10,7 @@ import { Audio, Video } from 'expo-av';
 import * as MediaLibrary from 'expo-media-library';
 import api from '../api/api';
 
-export default function StatusUpdateForm({ task, user, onClose, onSuccess }) {
+export default function StatusUpdateForm({ task, user, onClose, onSuccess, type = "task" }) {
     const [statusText, setStatusText] = useState(task.status.text);
     const [description, setDescription] = useState('');
     const [image, setImage] = useState(null);
@@ -66,7 +66,6 @@ export default function StatusUpdateForm({ task, user, onClose, onSuccess }) {
         });
 
         if (!result.canceled) setVideo(result.assets[0]);
-        console.log(result.assets[0]);
     };
 
     const recordVideo = async () => {
@@ -169,11 +168,19 @@ export default function StatusUpdateForm({ task, user, onClose, onSuccess }) {
                     });
                 }
             }
-            await api.put(`/api/tasks/${task._id}/status`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
+            if (type === "task") {
+                await api.put(`/api/tasks/${task._id}/status`, formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    },
+                });
+            } else if (type === "ticket") {
+                await api.put(`/api/tickets/${task._id}/status`, formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    },
+                });
+            }
 
             onSuccess();
         } catch (err) {
