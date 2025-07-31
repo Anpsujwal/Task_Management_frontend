@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from "react";
 import api from "../api/api";
-import { Alert, View, Text, TouchableOpacity, StyleSheet, Button,Modal } from "react-native";
+import { Alert, View, Text, TouchableOpacity, StyleSheet, Button, Modal,ScrollView } from "react-native";
 import { AuthContext } from "../context/AuthContext";
 import GoBackToDashboard from "../Components/GoToDashboard";
 import StatusUpdateForm from "../Components/StatusUpdateComponent";
@@ -9,7 +9,8 @@ import StatusUpdateForm from "../Components/StatusUpdateComponent";
 export default function WorkerTicketManagement() {
 
     const { user } = useContext(AuthContext)
-    const [tickets, setTickets] = useState([])
+    const [assignedTickets, setAssignedTickets] = useState([])
+    const [unAssignedTickets, setUnAssignedTickets] = useState([])
     const [selectedTicket, setSelectedTicket] = useState(null)
 
     const fetchTickets = async () => {
@@ -37,8 +38,11 @@ export default function WorkerTicketManagement() {
                     }
                 })
             );
-
-            setTickets(updatedTickets);
+            console.log(updatedTickets)
+            setAssignedTickets(updatedTickets.filter(ticket => ticket.assignedWorker!==undefined ))
+            setUnAssignedTickets(updatedTickets.filter(ticket =>  ticket.assignedWorker===undefined ))
+            console.log(unAssignedTickets)
+            console.log(assignedTickets)
         } catch (err) {
             Alert.alert("Error fetching tickets");
         }
@@ -46,7 +50,7 @@ export default function WorkerTicketManagement() {
 
     const handleStatusUpdate = async () => {
         setSelectedTicket(null);
-        fetchTickets(); 
+        fetchTickets();
     };
 
 
@@ -85,13 +89,13 @@ export default function WorkerTicketManagement() {
 
 
     return (
-        <View>
+        <ScrollView>
             <GoBackToDashboard />
 
-            {tickets?.length > 0 && (
+            {unAssignedTickets?.length > 0 && (
                 <View style={{ marginTop: 30 }}>
-                    <Text style={styles.heading}>All Tickets</Text>
-                    {tickets.map((ticket) => (
+                    <Text style={styles.heading}>Available Tickets</Text>
+                    {unAssignedTickets.map((ticket) => (
                         <View key={ticket._id}>
                             <TouchableOpacity
                                 style={styles.taskItem}
@@ -107,24 +111,50 @@ export default function WorkerTicketManagement() {
                                 <Text style={styles.taskStatus}>Created On: {ticket.createdDate}</Text>
                                 <Text style={styles.taskStatus}>Status: {ticket.status?.text}</Text>
 
-                                {(ticket.assignedWorker) ?
-                                    (ticket.assignedWorker === user?._id) &&
+
+                                <Button title='Freeze Task' onPress={() => { freezeTask(ticket._id) }}></Button>
+
+
+
+                            </TouchableOpacity>
+                        </View>
+                    ))}
+                </View>
+            )}
+
+            {assignedTickets?.length > 0 && (
+                <View style={{ marginTop: 30 }}>
+                    <Text style={styles.heading}>frozen Tickets</Text>
+                    {assignedTickets.map((ticket) => (
+                        <View key={ticket._id}>
+                            <TouchableOpacity
+                                style={styles.taskItem}
+                            >
+                                <Text style={styles.taskTitle}>{ticket.title}</Text>
+                                <Text style={styles.taskStatus}>comment: {ticket.comment}</Text>
+                                <Text style={styles.taskStatus}>Priority: {ticket.priority}</Text>
+
+                                <Text style={styles.taskStatus}>
+                                    Worker Assigned: {ticket.assignedWorker ? ticket.assignedWorkerName : "No Workers Assigned Yet"}
+                                </Text>
+
+                                <Text style={styles.taskStatus}>Created On: {ticket.createdDate}</Text>
+                                <Text style={styles.taskStatus}>Status: {ticket.status?.text}</Text>
+
+                                {(ticket.assignedWorker === user?._id) &&
                                     <View>
                                         <Text style={styles.selectedTask}>You Frooze the Task</Text>
                                         <Button title='UnFreeze Task' onPress={() => { unfreezeTask(ticket._id) }}></Button>
 
                                         <Button title="Update Status" onPress={() => { setSelectedTicket(ticket) }}></Button>
                                     </View>
-
-                                    :
-                                    <Button title='Freeze Task' onPress={() => { freezeTask(ticket._id) }}></Button>
-
                                 }
+
+
 
                             </TouchableOpacity>
                         </View>
                     ))}
-
                 </View>
             )}
 
@@ -139,7 +169,7 @@ export default function WorkerTicketManagement() {
                     />
                 </Modal>
             )}
-        </View>
+        </ScrollView>
     )
 }
 
