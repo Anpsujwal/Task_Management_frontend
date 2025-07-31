@@ -83,7 +83,7 @@ export default function TaskDashboard() {
 
   async function playAudio(id) {
     await Audio.Sound.createAsync(
-      { uri: `${api.defaults.baseURL}api/tasks/${id}/audio` },
+      { uri: `${api.defaults.baseURL}api/${type==="tenant" ?"tickets":"tasks"}/${id}/audio` },
       { shouldPlay: true }
     );
   
@@ -137,7 +137,7 @@ export default function TaskDashboard() {
                 <Text>Created At: {item.createdDate}</Text>
                 {item.status.image?.hasImage &&
                 <Image
-                  source={{ uri: `${api.defaults.baseURL}api/tasks/${item._id}/image` }}
+                  source={{ uri: `${api.defaults.baseURL}api/${type==="tenant" ?"tickets":"tasks"}/${item._id}/image` }}
                   style={{ width: 200, height: 200 }}
                 />
                 }
@@ -145,7 +145,7 @@ export default function TaskDashboard() {
                 
                 {item.status.video?.hasVideo &&
                 <Video
-                  source={{ uri: `${api.defaults.baseURL}api/tasks/${item._id}/video` }}
+                  source={{ uri: `${api.defaults.baseURL}api/${type==="tenant" ?"tickets":"tasks"}/${item._id}/video` }}
                   style={{ width: 600, height: 600 }}
                   useNativeControls
                   resizeMode="contain"
