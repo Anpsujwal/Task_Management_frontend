@@ -1,33 +1,33 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image, ScrollView,Button} from "react-native";
-import React, { useEffect, useState ,useContext} from "react";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image, ScrollView, Button } from "react-native";
+import React, { useEffect, useState, useContext } from "react";
 import api from "../api/api";
-import {Video, Audio } from "expo-av";
+import { Video, Audio } from "expo-av";
 import GoBackToDashboard from "../Components/GoToDashboard";
 import { AuthContext } from "../context/AuthContext";
 import FilterByDate from "../Components/FilterTaskByDate";
 
-export default function TaskDashboard({navigation}) {
-  const {user,type}=useContext(AuthContext);
+export default function TaskDashboard({ navigation }) {
+  const { user, type } = useContext(AuthContext);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState(null); 
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [filterByDate, setFilterByDate] = useState(false);
   const [filteredTasksByDate, setFilteredTasksByDate] = useState([]);
 
   useEffect(() => {
     const fetchTasks = async () => {
       try {
-        if(type==="tenant"){
-          const res=await api.get(`api/tickets/createdby/${user._id}`);
+        if (type === "tenant") {
+          const res = await api.get(`api/tickets/createdby/${user._id}`);
           setTasks(res.data);
         }
         else if (user.adminType === "group") {
-          const res=await api.get(`api/tasks/createdby/${user._id}`);
+          const res = await api.get(`api/tasks/createdby/${user._id}`);
           setTasks(res.data);
-          
-        }else{
-        const res = await api.get("/api/tasks");
-        setTasks(res.data);
+
+        } else {
+          const res = await api.get("/api/tasks");
+          setTasks(res.data);
         }
       } catch (err) {
         console.error("Error fetching tasks:", err);
@@ -42,10 +42,10 @@ export default function TaskDashboard({navigation}) {
   const now = new Date();
 
   const categorizedCounts = {
-    pending: tasks?.filter(t => t.status?.text === "pending").length,
-    in_progress: tasks?.filter(t => t.status?.text === "in_progress").length,
-    completed: tasks?.filter(t => t.status?.text === "completed").length,
-    overdue: tasks?.filter(t => {
+    pending:( !filterByDate?tasks:filteredTasksByDate)?.filter(t => t.status?.text === "pending").length,
+    in_progress: ( !filterByDate?tasks:filteredTasksByDate)?.filter(t => t.status?.text === "in_progress").length,
+    completed: ( !filterByDate?tasks:filteredTasksByDate)?.filter(t => t.status?.text === "completed").length,
+    overdue: ( !filterByDate?tasks:filteredTasksByDate)?.filter(t => {
       return (
         (t.status?.text !== "completed") &&
         t.dueDate &&
@@ -54,7 +54,7 @@ export default function TaskDashboard({navigation}) {
     }).length,
   };
 
-  const filteredTasks = tasks?.filter(task => {
+  const filteredTasks =( !filterByDate?tasks:filteredTasksByDate)?.filter(task => {
     if (!selectedCategory) return false;
 
     if (selectedCategory === "overdue") {
@@ -85,31 +85,36 @@ export default function TaskDashboard({navigation}) {
 
   async function playAudio(id) {
     await Audio.Sound.createAsync(
-      { uri: `${api.defaults.baseURL}api/${type==="tenant" ?"tickets":"tasks"}/${id}/audio` },
+      { uri: `${api.defaults.baseURL}api/${type === "tenant" ? "tickets" : "tasks"}/${id}/audio` },
       { shouldPlay: true }
     );
-  
+
   }
 
-  const handleDownload=()=>{
+  const handleDownload = () => {
     const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-    
+
     const endOfMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
-   
-    const tasksOfThisMonth=tasks.filter(task => {
-            const taskDate = new Date(task.dueDate);
-            return taskDate >= startOfMonth && taskDate <= endOfMonth;
+
+    const tasksOfThisMonth = tasks.filter(task => {
+      const taskDate = new Date(task.dueDate);
+      return taskDate >= startOfMonth && taskDate <= endOfMonth;
     })
-    
-    navigation.navigate('ReportDownload',{tasks:tasksOfThisMonth})
+
+    navigation.navigate('ReportDownload', { tasks: tasksOfThisMonth })
   }
 
   return (
-    <View style={styles.container}>
-      <GoBackToDashboard/>
-      {type==="tenant" ?<Text style={styles.title}>Ticket Summary</Text>:<Text style={styles.title}>Task Summary</Text>}
+    <ScrollView style={styles.container}>
+      <GoBackToDashboard />
+      {type === "tenant" ? <Text style={styles.title}>Ticket Summary</Text> : <Text style={styles.title}>Task Summary</Text>}
 
-      <FilterByDate ></FilterByDate>
+
+
+      {!filterByDate && <Button title="Filter Tasks By Date" onPress={() => { setFilterByDate(true); setCreateNewTask(false) }}></Button>}
+
+
+      {filterByDate && <FilterByDate tasks={tasks} setFilteredTasks={setFilteredTasksByDate} setFilterByDate={setFilterByDate} />}
 
       <View style={styles.cardRow}>
         {categories.map(cat => (
@@ -124,11 +129,11 @@ export default function TaskDashboard({navigation}) {
         ))}
       </View>
 
-      {user?.isAdmin && <Button title="Download Summary of this month" onPress={()=>{handleDownload()}}></Button>}
+      {user?.isAdmin && <Button title="Download Summary of this month" onPress={() => { handleDownload() }}></Button>}
 
       {selectedCategory && (
         <>
-          <Text style={styles.subTitle}>{type==="tenant" ?"Tickets":"Tasks"} {categories.find(c => c.key === selectedCategory)?.label}</Text>
+          <Text style={styles.subTitle}>{type === "tenant" ? "Tickets" : "Tasks"} {categories.find(c => c.key === selectedCategory)?.label}</Text>
           <FlatList
             data={filteredTasks}
             keyExtractor={item => item._id}
@@ -137,17 +142,17 @@ export default function TaskDashboard({navigation}) {
                 <Text style={styles.taskTitle}>{item.title}</Text>
                 <Text>Comment : <Text style={styles.status}>{item.comment}</Text></Text>
                 <Text>Status : <Text style={styles.status}>{item.status?.text}</Text></Text>
-                {(selectedCategory==="pending" || selectedCategory==="overdue") && <Text>
+                {(selectedCategory === "pending" || selectedCategory === "overdue") && <Text>
                   Assigned To : {" "}
-                  {type==="tenant" ? (item.assignedWorkers?.length > 0 ?'Worker(s) assigned' :'Workers not assigned') :
-                   (item.assignedWorkers?.length > 0
-                    ? `${item.assignedWorkers.length} worker(s)`
-                    : "Assigned to group")}
+                  {type === "tenant" ? (item.assignedWorkers?.length > 0 ? 'Worker(s) assigned' : 'Workers not assigned') :
+                    (item.assignedWorkers?.length > 0
+                      ? `${item.assignedWorkers.length} worker(s)`
+                      : "Assigned to group")}
                 </Text>}
                 <Text>
                   days from creation : {Math.floor((new Date() - new Date(item.createdDate)) / (1000 * 60 * 60 * 24))}
                 </Text>
-                {type==="staff" && <Text>
+                {type === "staff" && <Text>
                   Due Date : {" "}
                   {item.dueDate
                     ? item.dueDate
@@ -155,40 +160,41 @@ export default function TaskDashboard({navigation}) {
                 </Text>}
                 <Text>Created At: {item.createdDate}</Text>
                 {item.status.image?.hasImage &&
-                <Image
-                  source={{ uri: `${api.defaults.baseURL}api/${type==="tenant" ?"tickets":"tasks"}/${item._id}/image` }}
-                  style={{ width: 200, height: 200 }}
-                />
+                  <Image
+                    source={{ uri: `${api.defaults.baseURL}api/${type === "tenant" ? "tickets" : "tasks"}/${item._id}/image` }}
+                    style={{ width: 200, height: 200 }}
+                  />
                 }
-            
-                
+
+
                 {item.status.video?.hasVideo &&
-                <Video
-                  source={{ uri: `${api.defaults.baseURL}api/${type==="tenant" ?"tickets":"tasks"}/${item._id}/video` }}
-                  style={{ width: 600, height: 600 }}
-                  useNativeControls
-                  resizeMode="contain"
-                  isLooping
-                />}
-                
-            
+                  <Video
+                    source={{ uri: `${api.defaults.baseURL}api/${type === "tenant" ? "tickets" : "tasks"}/${item._id}/video` }}
+                    style={{ width: 600, height: 600 }}
+                    useNativeControls
+                    resizeMode="contain"
+                    isLooping
+                  />}
+
+
                 {item.status.audio?.hasAudio &&
-                <Button title="Play Audio" onPress={()=>{playAudio(item._id)}} />
-              }
-            
+                  <Button title="Play Audio" onPress={() => { playAudio(item._id) }} />
+                }
+
               </View>
-                
+
             )}
-            
+
           />
         </>
       )}
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     padding: 20,
     backgroundColor: "#f0f2f5",
     minHeight: "100vh",
