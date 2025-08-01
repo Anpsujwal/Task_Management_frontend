@@ -16,6 +16,8 @@ import TicketManagementScreen from '../screens/TicketCreationScreen';
 import AdminTicketManagement from '../screens/AdminTicketManagement';
 import WorkerTicketManagement from '../screens/WorkerTicketManagement';
 import TicketReportScreen from '../screens/TicketReportScreen';
+import ReportSummaryDownload from '../screens/ReportSummaryDownload';
+
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
@@ -37,6 +39,7 @@ export default function AppNavigator() {
         <Stack.Screen name="AdminTicketManagement" component={AdminTicketManagement}/>
         <Stack.Screen name="WorkerTicketManagement" component={WorkerTicketManagement}/>
         <Stack.Screen name="TicketReportScreen" component={TicketReportScreen}/>
+        <Stack.Screen name="ReportDownload" component={ReportSummaryDownload}></Stack.Screen>
       </Stack.Navigator>
     </NavigationContainer>
   );

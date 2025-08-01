@@ -4,13 +4,15 @@ import api from "../api/api";
 import {Video, Audio } from "expo-av";
 import GoBackToDashboard from "../Components/GoToDashboard";
 import { AuthContext } from "../context/AuthContext";
+import FilterByDate from "../Components/FilterTaskByDate";
 
-
-export default function TaskDashboard() {
+export default function TaskDashboard({navigation}) {
   const {user,type}=useContext(AuthContext);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState(null); 
+  const [filterByDate, setFilterByDate] = useState(false);
+  const [filteredTasksByDate, setFilteredTasksByDate] = useState([]);
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -22,7 +24,7 @@ export default function TaskDashboard() {
         else if (user.adminType === "group") {
           const res=await api.get(`api/tasks/createdby/${user._id}`);
           setTasks(res.data);
-          console.log(res.data);
+          
         }else{
         const res = await api.get("/api/tasks");
         setTasks(res.data);
@@ -46,8 +48,8 @@ export default function TaskDashboard() {
     overdue: tasks?.filter(t => {
       return (
         (t.status?.text !== "completed") &&
-        t.completeBy?.dueDate &&
-        new Date(t.completeBy.dueDate) < now
+        t.dueDate &&
+        new Date(t.dueDate) < now
       );
     }).length,
   };
@@ -58,8 +60,8 @@ export default function TaskDashboard() {
     if (selectedCategory === "overdue") {
       return (
         task.status?.text !== "completed" &&
-        task.completeBy?.dueDate &&
-        new Date(task.completeBy.dueDate) < now
+        task.dueDate &&
+        new Date(task.dueDate) < now
       );
     }
 
@@ -89,10 +91,25 @@ export default function TaskDashboard() {
   
   }
 
+  const handleDownload=()=>{
+    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    
+    const endOfMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+   
+    const tasksOfThisMonth=tasks.filter(task => {
+            const taskDate = new Date(task.dueDate);
+            return taskDate >= startOfMonth && taskDate <= endOfMonth;
+    })
+    
+    navigation.navigate('ReportDownload',{tasks:tasksOfThisMonth})
+  }
+
   return (
     <View style={styles.container}>
       <GoBackToDashboard/>
       {type==="tenant" ?<Text style={styles.title}>Ticket Summary</Text>:<Text style={styles.title}>Task Summary</Text>}
+
+      <FilterByDate ></FilterByDate>
 
       <View style={styles.cardRow}>
         {categories.map(cat => (
@@ -106,6 +123,8 @@ export default function TaskDashboard() {
           </TouchableOpacity>
         ))}
       </View>
+
+      {user?.isAdmin && <Button title="Download Summary of this month" onPress={()=>{handleDownload()}}></Button>}
 
       {selectedCategory && (
         <>
