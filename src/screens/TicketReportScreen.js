@@ -1,28 +1,31 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image, ScrollView,Button} from "react-native";
-import React, { useEffect, useState ,useContext} from "react";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image, ScrollView, Button } from "react-native";
+import React, { useEffect, useState, useContext } from "react";
 import api from "../api/api";
-import {Video, Audio } from "expo-av";
+import { Video, Audio } from "expo-av";
 import GoBackToDashboard from "../Components/GoToDashboard";
 import { AuthContext } from "../context/AuthContext";
+import FilterTicketsByDate from "../Components/FilterTicketByDate";
 
-
-export default function TicketReportScreen() {
-  const {user,type}=useContext(AuthContext);
+export default function TicketReportScreen({ navigation }) {
+  const { user, type } = useContext(AuthContext);
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState(null); 
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [filterByDate, setFilterByDate] = useState(false);
+  const [filteredTicketsByDate, setFilteredTicketsByDate] = useState([]);
+
 
   useEffect(() => {
     const fetchTickets = async () => {
-      try{
-        if(!user.isAdmin){
-          const res=await api.get(`api/tickets/user/${user._id}`);
+      try {
+        if (!user.isAdmin) {
+          const res = await api.get(`api/tickets/user/${user._id}`);
           setTickets(res.data);
-        }else if(user.adminType==="group"){
-          const res=await api.get(`api/tickets/group/${user.group}`);
+        } else if (user.adminType === "group") {
+          const res = await api.get(`api/tickets/group/${user.group}`);
           setTickets(res.data);
-        }else{
-          const res=await api.get(`api/tickets/`);
+        } else {
+          const res = await api.get(`api/tickets/`);
           setTickets(res.data);
         }
       } catch (err) {
@@ -38,10 +41,10 @@ export default function TicketReportScreen() {
   const now = new Date();
 
   const categorizedCounts = {
-    pending: tickets?.filter(t => t.status?.text === "pending").length,
-    in_progress: tickets?.filter(t => t.status?.text === "in_progress").length,
-    completed: tickets?.filter(t => t.status?.text === "completed").length,
-    overdue: tickets?.filter(t => {
+    pending: (!filterByDate ? tickets : filteredTicketsByDate)?.filter(t => t.status?.text === "pending").length,
+    in_progress: (!filterByDate ? tickets : filteredTicketsByDate)?.filter(t => t.status?.text === "in_progress").length,
+    completed: (!filterByDate ? tickets : filteredTicketsByDate)?.filter(t => t.status?.text === "completed").length,
+    overdue: (!filterByDate ? tickets : filteredTicketsByDate)?.filter(t => {
       return (
         (t.status?.text !== "completed") &&
         t.completeBy?.dueDate &&
@@ -50,7 +53,7 @@ export default function TicketReportScreen() {
     }).length,
   };
 
-  const filteredTickets = tickets?.filter(task => {
+  const filteredTickets = (!filterByDate ? tickets : filteredTicketsByDate)?.filter(task => {
     if (!selectedCategory) return false;
 
     if (selectedCategory === "overdue") {
@@ -84,13 +87,31 @@ export default function TicketReportScreen() {
       { uri: `${api.defaults.baseURL}api/tickets/${id}/audio` },
       { shouldPlay: true }
     );
-  
+
+  }
+
+  const handleDownload = () => {
+    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+
+    const endOfMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+
+    const ticketsOfThisMonth = tickets.filter(ticket=> {
+      const ticketDate = new Date(ticket.createdDate);
+      return ticketDate >= startOfMonth && ticketDate <= endOfMonth;
+    })
+
+    navigation.navigate('TicketSummaryDownload', { tickets: ticketsOfThisMonth })
   }
 
   return (
     <View style={styles.container}>
-      <GoBackToDashboard/>
+      <GoBackToDashboard />
       <Text style={styles.title}>Ticket Summary</Text>
+
+      {!filterByDate && <Button title="Filter Tickets By Date" onPress={() => { setFilterByDate(true) }}></Button>}
+
+
+      {filterByDate && <FilterTicketsByDate tickets={tickets} setFilteredTickets={setFilteredTicketsByDate} setFilterByDate={setFilterByDate} />}
 
       <View style={styles.cardRow}>
         {categories?.map(cat => (
@@ -105,9 +126,13 @@ export default function TicketReportScreen() {
         ))}
       </View>
 
+      {user?.isAdmin && <Button title="Download Summary of this month" onPress={() => { handleDownload() }}></Button>}
+
       {selectedCategory && (
         <>
           <Text style={styles.subTitle}>Tickets {categories?.find(c => c.key === selectedCategory)?.label}</Text>
+
+
           <FlatList
             data={filteredTickets}
             keyExtractor={item => item._id}
@@ -116,43 +141,43 @@ export default function TicketReportScreen() {
                 <Text style={styles.taskTitle}>{item.title}</Text>
                 <Text>Comment : <Text style={styles.status}>{item.comment}</Text></Text>
                 <Text>Status : <Text style={styles.status}>{item.status?.text}</Text></Text>
-                {(selectedCategory==="pending" || selectedCategory==="overdue") && <Text>
+                {(selectedCategory === "pending" || selectedCategory === "overdue") && <Text>
                   Assigned To : {" "}
-                  {type==="tenant" ? (item.assignedWorkers?.length > 0 ?'Worker(s) assigned' :'Workers not assigned') :
-                   (item.assignedWorkers?.length > 0
-                    ? `${item.assignedWorkers.length} worker(s)`
-                    : "Assigned to group")}
+                  {type === "tenant" ? (item.assignedWorkers?.length > 0 ? 'Worker(s) assigned' : 'Workers not assigned') :
+                    (item.assignedWorkers?.length > 0
+                      ? `${item.assignedWorkers.length} worker(s)`
+                      : "Assigned to group")}
                 </Text>}
                 <Text>
                   days from creation : {Math.floor((new Date() - new Date(item.createdDate)) / (1000 * 60 * 60 * 24))}
                 </Text>
                 <Text>Created At: {item.createdDate}</Text>
                 {item.status?.image?.hasImage &&
-                <Image
-                  source={{ uri: `${api.defaults.baseURL}api/tickets/${item._id}/image` }}
-                  style={{ width: 200, height: 200 }}
-                />
+                  <Image
+                    source={{ uri: `${api.defaults.baseURL}api/tickets/${item._id}/image` }}
+                    style={{ width: 200, height: 200 }}
+                  />
                 }
-            
-                
+
+
                 {item.status?.video?.hasVideo &&
-                <Video
-                  source={{ uri: `${api.defaults.baseURL}api/tickets/${item._id}/video` }}
-                  style={{ width: 600, height: 600 }}
-                  useNativeControls
-                  resizeMode="contain"
-                  isLooping
-                />}
-                
-            
+                  <Video
+                    source={{ uri: `${api.defaults.baseURL}api/tickets/${item._id}/video` }}
+                    style={{ width: 600, height: 600 }}
+                    useNativeControls
+                    resizeMode="contain"
+                    isLooping
+                  />}
+
+
                 {item.status?.audio?.hasAudio &&
-                <Button title="Play Audio" onPress={()=>{playAudio(item._id)}} />
-              }
-            
+                  <Button title="Play Audio" onPress={() => { playAudio(item._id) }} />
+                }
+
               </View>
-                
+
             )}
-            
+
           />
         </>
       )}

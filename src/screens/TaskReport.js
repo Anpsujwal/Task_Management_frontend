@@ -42,10 +42,10 @@ export default function TaskDashboard({ navigation }) {
   const now = new Date();
 
   const categorizedCounts = {
-    pending:( !filterByDate?tasks:filteredTasksByDate)?.filter(t => t.status?.text === "pending").length,
-    in_progress: ( !filterByDate?tasks:filteredTasksByDate)?.filter(t => t.status?.text === "in_progress").length,
-    completed: ( !filterByDate?tasks:filteredTasksByDate)?.filter(t => t.status?.text === "completed").length,
-    overdue: ( !filterByDate?tasks:filteredTasksByDate)?.filter(t => {
+    pending: (!filterByDate ? tasks : filteredTasksByDate)?.filter(t => t.status?.text === "pending").length,
+    in_progress: (!filterByDate ? tasks : filteredTasksByDate)?.filter(t => t.status?.text === "in_progress").length,
+    completed: (!filterByDate ? tasks : filteredTasksByDate)?.filter(t => t.status?.text === "completed").length,
+    overdue: (!filterByDate ? tasks : filteredTasksByDate)?.filter(t => {
       return (
         (t.status?.text !== "completed") &&
         t.dueDate &&
@@ -54,7 +54,7 @@ export default function TaskDashboard({ navigation }) {
     }).length,
   };
 
-  const filteredTasks =( !filterByDate?tasks:filteredTasksByDate)?.filter(task => {
+  const filteredTasks = (!filterByDate ? tasks : filteredTasksByDate)?.filter(task => {
     if (!selectedCategory) return false;
 
     if (selectedCategory === "overdue") {
@@ -105,16 +105,22 @@ export default function TaskDashboard({ navigation }) {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <View style={styles.container}>
       <GoBackToDashboard />
       {type === "tenant" ? <Text style={styles.title}>Ticket Summary</Text> : <Text style={styles.title}>Task Summary</Text>}
 
 
-
-      {!filterByDate && <Button title="Filter Tasks By Date" onPress={() => { setFilterByDate(true); setCreateNewTask(false) }}></Button>}
-
-
-      {filterByDate && <FilterByDate tasks={tasks} setFilteredTasks={setFilteredTasksByDate} setFilterByDate={setFilterByDate} />}
+      {type === "staff" && (
+        !filterByDate ? (
+          <Button title="Filter Tasks By Date" onPress={() => setFilterByDate(true)} />
+        ) : (
+          <FilterByDate
+            tasks={tasks}
+            setFilteredTasks={setFilteredTasksByDate}
+            setFilterByDate={setFilterByDate}
+          />
+        )
+      )}
 
       <View style={styles.cardRow}>
         {categories.map(cat => (
@@ -188,7 +194,7 @@ export default function TaskDashboard({ navigation }) {
           />
         </>
       )}
-    </ScrollView>
+    </View>
   );
 }
 

@@ -1,17 +1,19 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image, ScrollView,Button} from "react-native";
-import  { useEffect, useState,useContext } from "react";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image, ScrollView, Button } from "react-native";
+import { useEffect, useState, useContext } from "react";
 import api from "../api/api";
-import {Video, Audio } from "expo-av";
+import { Video, Audio } from "expo-av";
 import GoBackToDashboard from "../Components/GoToDashboard";
 import { AuthContext } from "../context/AuthContext";
-
+import FilterByDate from "../Components/FilterTaskByDate";
 
 
 export default function WorkerTaskReport() {
-  const {user}=useContext(AuthContext);
+  const { user } = useContext(AuthContext);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState(null); 
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [filterByDate, setFilterByDate] = useState(false);
+  const [filteredTasksByDate, setFilteredTasksByDate] = useState([]);
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -31,10 +33,10 @@ export default function WorkerTaskReport() {
   const now = new Date();
 
   const categorizedCounts = {
-    pending: tasks.filter(t => t.status?.text === "pending").length,
-    in_progress: tasks.filter(t => t.status?.text === "in_progress").length,
-    completed: tasks.filter(t => t.status?.text === "completed").length,
-    overdue: tasks.filter(t => {
+    pending: (!filterByDate ? tasks : filteredTasksByDate).filter(t => t.status?.text === "pending").length,
+    in_progress:(!filterByDate ? tasks : filteredTasksByDate).filter(t => t.status?.text === "in_progress").length,
+    completed: (!filterByDate ? tasks : filteredTasksByDate).filter(t => t.status?.text === "completed").length,
+    overdue: (!filterByDate ? tasks : filteredTasksByDate).filter(t => {
       return (
         (t.status?.text !== "completed") &&
         t.completeBy?.dueDate &&
@@ -43,7 +45,7 @@ export default function WorkerTaskReport() {
     }).length,
   };
 
-  const filteredTasks = tasks.filter(task => {
+  const filteredTasks =(!filterByDate ? tasks : filteredTasksByDate).filter(task => {
     if (!selectedCategory) return false;
 
     if (selectedCategory === "overdue") {
@@ -77,14 +79,24 @@ export default function WorkerTaskReport() {
       { uri: `${api.defaults.baseURL}api/tasks/${id}/audio` },
       { shouldPlay: true }
     );
-  
+
   }
 
   return (
     <View style={styles.container}>
-      <GoBackToDashboard/>
+      <GoBackToDashboard />
       <Text style={styles.title}>Task Summary</Text>
 
+      {!filterByDate ? (
+        <Button title="Filter Tasks By Date" onPress={() => setFilterByDate(true)} />
+      ) : (
+        <FilterByDate
+          tasks={tasks}
+          setFilteredTasks={setFilteredTasksByDate}
+          setFilterByDate={setFilterByDate}
+        />
+      )
+      }
       <View style={styles.cardRow}>
         {categories.map(cat => (
           <TouchableOpacity
@@ -108,7 +120,7 @@ export default function WorkerTaskReport() {
               <View style={styles.taskCard}>
                 <Text style={styles.taskTitle}>{item.title}</Text>
                 <Text>Status : <Text style={styles.status}>{item.status?.text}</Text></Text>
-                {(selectedCategory==="pending" || selectedCategory==="overdue") && <Text>
+                {(selectedCategory === "pending" || selectedCategory === "overdue") && <Text>
                   Assigned To : {" "}
                   {item.assignedWorkers?.length > 0
                     ? `${item.assignedWorkers.length} worker(s)`
@@ -124,29 +136,31 @@ export default function WorkerTaskReport() {
                     : "N/A"}
                 </Text>
                 <Text>Created At: {item.createdDate}</Text>
-                {item.status?.image?.hasImage &&
-                <Image
-                  source={{ uri: `${api.defaults.baseURL}api/tasks/${item._id}/image` }}
-                  style={{ width: 200, height: 200 }}
-                />
-            }
+                {item.status.image?.hasImage &&
                 
-                { item.status?.video?.hasVideo &&
-                <Video
-                  source={{ uri: `${api.defaults.baseURL}api/tasks/${item._id}/video` }}
-                  style={{ width: 600, height: 600 }}
-                  useNativeControls
-                  resizeMode="contain"
-                  isLooping
-                />
-            }
+                  <Image
+                    source={{ uri: `${api.defaults.baseURL}api/tasks/${item._id}/image` }}
+                    style={{ width: 200, height: 200 }}
+                  />
+                  
+                }
+
+                {item.status?.video?.hasVideo &&
+                  <Video
+                    source={{ uri: `${api.defaults.baseURL}api/tasks/${item._id}/video` }}
+                    style={{ width: 600, height: 600 }}
+                    useNativeControls
+                    resizeMode="contain"
+                    isLooping
+                  />
+                }
                 {item.status?.audio?.hasAudio &&
-                <Button title="Play Audio" onPress={()=>{playAudio(item._id)}} />
-            }
+                  <Button title="Play Audio" onPress={() => { playAudio(item._id) }} />
+                }
               </View>
-                
+
             )}
-            
+
           />
         </>
       )}
@@ -156,6 +170,7 @@ export default function WorkerTaskReport() {
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     padding: 20,
     backgroundColor: "#f0f2f5",
     minHeight: "100vh",

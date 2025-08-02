@@ -1,7 +1,7 @@
-import  { useEffect, useState,useContext } from 'react';
+import { useEffect, useState, useContext } from 'react';
 import {
   View, Text, TouchableOpacity,
-   StyleSheet, Alert, ScrollView,Button
+  StyleSheet, Alert, ScrollView, Button, FlatList
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../api/api';
@@ -25,7 +25,7 @@ export default function TaskManagementScreen() {
   const [createNewTask, setCreateNewTask] = useState(false);
   const [filterByDate, setFilterByDate] = useState(false);
   const [filteredTasks, setFilteredTasks] = useState([]);
-  
+
 
   const [selectedTaskDetails, setSelectedTaskDetails] = useState(null);
 
@@ -58,83 +58,108 @@ export default function TaskManagementScreen() {
     }
   };
 
-   useEffect(() => {
+  useEffect(() => {
     fetchAllTasks();
     fetchUsers();
     fetchGroup();
     setSelectedTaskDetails(null);
-  },[]);
+  }, []);
 
-  
+
 
   return (
     <LinearGradient colors={['#fdfbfb', '#ebedee']} style={styles.gradient}>
-      <GoBackToDashboard/>
+      <GoBackToDashboard />
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.heading}>Task Management</Text>
 
-        {!createNewTask && <Button title="Create Task" onPress={()=>{setCreateNewTask(true);setFilterByDate(false)}}></Button>}
-        {!filterByDate && <Button title="Filter Tasks By Date" onPress={()=>{setFilterByDate(true);setCreateNewTask(false)}}></Button>}
+        {!createNewTask && <Button title="Create Task" onPress={() => { setCreateNewTask(true); setFilterByDate(false) }}></Button>}
+        {!filterByDate && <Button title="Filter Tasks By Date" onPress={() => { setFilterByDate(true); setCreateNewTask(false) }}></Button>}
 
         {createNewTask && <TaskCreationForm users={users} group={group} fetchAllTasks={fetchAllTasks} setCreateNewTask={setCreateNewTask}></TaskCreationForm>}
-        { filterByDate && <FilterByDate tasks={allTasks} setFilteredTasks={setFilteredTasks} setFilterByDate={setFilterByDate} />}
+        {filterByDate && <FilterByDate tasks={allTasks} setFilteredTasks={setFilteredTasks} setFilterByDate={setFilterByDate} />}
 
-        { filteredTasks.length > 0 && (
+        {filteredTasks.length > 0 && (
           <View style={{ marginTop: 30 }}>
             <Text style={styles.heading}>Filtered Tasks</Text>
-            {filteredTasks.map((task) => (
-              <View key={task._id}>
-              <TouchableOpacity
-                style={styles.taskItem}
-                onPress={() => { setSelectedTaskDetails(task) }}
-              >
-                <Text style={styles.taskTitle}>{task.title}</Text>
-                <Text style={styles.taskStatus}>Priority: {task.priority}</Text>
-                <Text style={styles.taskStatus}>scheduleFor: {task.scheduleFor}</Text>
-                <Text style={styles.taskStatus}>
-                  Assigned Workers: {task.assignedWorkers?.length || 0}
-                </Text>
-                <Text style={styles.taskStatus}>Status: {task.status?.text}</Text>
-              </TouchableOpacity>
-              {selectedTaskDetails && selectedTaskDetails._id===task._id && <TaskEditComponent selectedTaskDetails={selectedTaskDetails} setSelectedTaskDetails={setSelectedTaskDetails} users={users} groups={groups} fetchTasks={fetchAllTasks}/>}
-              </View>
-            ))}
-            
+            <FlatList
+              data={filteredTasks}
+              keyExtractor={(item) => item._id}
+              renderItem={({ item: task }) => (
+                <View>
+                  <TouchableOpacity
+                    style={styles.taskItem}
+                    onPress={() => setSelectedTaskDetails(task)}
+                  >
+                    <Text style={styles.taskTitle}>{task.title}</Text>
+                    <Text style={styles.taskStatus}>Priority: {task.priority}</Text>
+                    <Text style={styles.taskStatus}>ScheduleFor: {task.scheduleFor}</Text>
+                    <Text style={styles.taskStatus}>
+                      Assigned Workers: {task.assignedWorkers?.length || 0}
+                    </Text>
+                    <Text style={styles.taskStatus}>Status: {task.status?.text}</Text>
+                  </TouchableOpacity>
+
+                  {selectedTaskDetails && selectedTaskDetails._id === task._id && (
+                    <TaskEditComponent
+                      selectedTaskDetails={selectedTaskDetails}
+                      setSelectedTaskDetails={setSelectedTaskDetails}
+                      users={users}
+                      groups={group}
+                      fetchTasks={fetchAllTasks}
+                    />
+                  )}
+                </View>
+              )}
+            />
+
           </View>
         )}
 
-        
 
-        { allTasks.length > 0 && (
+
+        {allTasks.length > 0 && (
           <View style={{ marginTop: 30 }}>
             <Text style={styles.heading}>Created Tasks</Text>
-            {allTasks.map((task) => (
-              <View key={task._id}>
-              <TouchableOpacity
-                style={styles.taskItem}
-                onPress={() => { setSelectedTaskDetails(task) }}
-              >
-                <Text style={styles.taskTitle}>{task.title}</Text>
-                <Text style={styles.taskStatus}>Priority: {task.priority}</Text>
-                <Text style={styles.taskStatus}>scheduleFor: {task.scheduleFor}</Text>
-                <Text style={styles.taskStatus}>
-                  Group:{group?.name || 'None'}
-                </Text>
-                <Text style={styles.taskStatus}>
-                  Workers:{task.assignToEntireGroup? 'Assigned to entire group' : 
-                   task.assignedWorkers?.length || 0}
-                
-                </Text>
-                <Text style={styles.taskStatus}>Status: {task.status?.text}</Text>
-              </TouchableOpacity>
-              {selectedTaskDetails && selectedTaskDetails._id===task._id && <TaskEditComponent selectedTaskDetails={selectedTaskDetails} setSelectedTaskDetails={setSelectedTaskDetails} users={users}  fetchTasks={fetchAllTasks}/>}
-              </View>
-            ))}
-            
+            <FlatList
+              data={allTasks}
+              keyExtractor={(item) => item._id}
+              renderItem={({ item: task }) => (
+                <View>
+                  <TouchableOpacity
+                    style={styles.taskItem}
+                    onPress={() => setSelectedTaskDetails(task)}
+                  >
+                    <Text style={styles.taskTitle}>{task.title}</Text>
+                    <Text style={styles.taskStatus}>Priority: {task.priority}</Text>
+                    <Text style={styles.taskStatus}>ScheduleFor: {task.scheduleFor}</Text>
+                    <Text style={styles.taskStatus}>
+                      Group: {group?.name || 'None'}
+                    </Text>
+                    <Text style={styles.taskStatus}>
+                      Workers: {task.assignToEntireGroup
+                        ? 'Assigned to entire group'
+                        : task.assignedWorkers?.length || 0}
+                    </Text>
+                    <Text style={styles.taskStatus}>Status: {task.status?.text}</Text>
+                  </TouchableOpacity>
+
+                  {selectedTaskDetails && selectedTaskDetails._id === task._id && (
+                    <TaskEditComponent
+                      selectedTaskDetails={selectedTaskDetails}
+                      setSelectedTaskDetails={setSelectedTaskDetails}
+                      users={users}
+                      fetchTasks={fetchAllTasks}
+                    />
+                  )}
+                </View>
+              )}
+            />
+
           </View>
         )}
 
-        
+
       </ScrollView>
     </LinearGradient>
   );

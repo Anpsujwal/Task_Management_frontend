@@ -37,11 +37,10 @@ export default function ReportSummaryDownload({ navigation, route }) {
 
     return (
         <View style={{ flex: 1 }}>
-            {/* Exclude this button from capture */}
+            
             <Button title="Go Back" onPress={() => navigation.goBack()} />
             <Button title="Download PDF" onPress={captureToPDF} />
 
-            {/* Wrap the part you want to capture */}
             <ViewShot
                 style={{ backgroundColor: "white" }}
                 ref={viewShotRef}

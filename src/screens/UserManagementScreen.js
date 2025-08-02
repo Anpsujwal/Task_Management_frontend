@@ -144,7 +144,7 @@ export default function UserManagementScreen() {
   return (
     <LinearGradient colors={['#ece9e6', '#ffffff']} style={styles.gradient}>
       <GoBackToDashboard />
-      <ScrollView contentContainerStyle={styles.container}>
+      <View contentContainerStyle={styles.container}>
         <Text style={styles.heading}>User Management</Text>
 
         <View style={styles.form}>
@@ -284,7 +284,7 @@ export default function UserManagementScreen() {
         ) : (
           <Text style={styles.noUsersText}>No users created</Text>
         )}
-      </ScrollView>
+      </View>
     </LinearGradient>
   );
 }

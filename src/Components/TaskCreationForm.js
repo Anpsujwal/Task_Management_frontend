@@ -49,14 +49,14 @@ export default function TaskCreationForm({ users, group, fetchAllTasks, setCreat
       }
 
       console.log(payload);
-      const res = await api.post('/api/tasks', payload);
+      await api.post('/api/tasks', payload);
+      Alert.alert('Success', 'Task created successfully');
       fetchAllTasks();
       setNewTaskTitle('');
       setComment('');
       setPriority('low');
       setAssignedWorkers([]);
       setScheduleFor('specific_day');
-      setAssignedGroup('');
       setDueDate(new Date());
       setAssignmentType(false);
       setWorkersNeeded(1);
