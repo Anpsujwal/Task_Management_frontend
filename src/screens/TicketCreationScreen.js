@@ -1,23 +1,20 @@
 import { useEffect, useState, useContext } from 'react';
 import {
     View, Text, TouchableOpacity,
-    StyleSheet, Alert, ScrollView, Button
+    StyleSheet, Alert, ScrollView
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../api/api';
 import GoBackToDashboard from '../Components/GoToDashboard';
 import TicketCreationForm from '../Components/TicketCreationForm';
-
 import { AuthContext } from '../context/AuthContext';
 
 export default function TicketManagementScreen() {
 
     const { user } = useContext(AuthContext);
-
     const [allTickets, setAllTickets] = useState([]);
-    const [groups, setGroups] = useState([])
+    const [groups, setGroups] = useState([]);
     const [group, setGroup] = useState(null);
-
 
     const fetchAllTickets = async () => {
         try {
@@ -26,7 +23,7 @@ export default function TicketManagementScreen() {
         } catch (err) {
             Alert.alert('Error', 'Unable to fetch all tickets');
         }
-    }
+    };
 
     const fetchGroups = async () => {
         try {
@@ -35,71 +32,62 @@ export default function TicketManagementScreen() {
         } catch (err) {
             Alert.alert('Error', 'Failed to load groups');
         }
-    }
-
+    };
 
     useEffect(() => {
         fetchAllTickets();
         fetchGroups();
     }, []);
 
-
-
     return (
-        <LinearGradient colors={['#fdfbfb', '#ebedee']} style={styles.gradient}>
+        <LinearGradient colors={['#f9fbff', '#f1f4f9']} style={styles.gradient}>
             <GoBackToDashboard />
             <ScrollView contentContainerStyle={styles.container}>
-
-                {!group && groups?.length > 0 &&
-                    <View style={{ marginTop: 30 }}>
-                        <Text style={styles.heading}>Select The Issue</Text>
-                        {
-                            groups?.map((group) => (
-                                <TouchableOpacity
-                                    key={group._id}
-                                    style={[styles.button, { backgroundColor: '#4CAF50' }]}
-                                    onPress={() => setGroup(group)}
-                                >
-                                    <Text style={styles.buttonText}>{group.name}</Text>
-                                </TouchableOpacity>
-                            ))
-
-                        }
-                    </View>
-
-                }
-
-                {group && <TicketCreationForm group={group} fetchAllTickets={fetchAllTickets} setGroup={setGroup}></TicketCreationForm>}
-
-
-
-                {allTickets?.length > 0 && (
-                    <View style={{ marginTop: 30 }}>
-                        <Text style={styles.heading}>Created Tickets</Text>
-                        {allTickets.map((ticket) => (
-                            <View key={ticket._id}>
-                                <TouchableOpacity
-                                    style={styles.taskItem}
-                                >
-                                    <Text style={styles.taskTitle}>{ticket.title}</Text>
-                                    <Text style={styles.taskStatus}>comment: {ticket.comment}</Text>
-                                    <Text style={styles.taskStatus}>Priority: {ticket.priority}</Text>
-                                    <Text style={styles.taskStatus}>
-                                        Group: {groups.find(group => group._id === ticket.assignedGroup)?.name}
-                                    </Text>
-                                    <Text style={styles.taskStatus}>
-                                        Workers: {ticket.assignedWorker ? "Worker Assigned" : "No Workers Assigned Yet"}
-                                    </Text>
-                                    <Text style={styles.taskStatus}>Created On: {ticket.createdDate}</Text>
-                                    <Text style={styles.taskStatus}>Status: {ticket.status?.text}</Text>
-                                </TouchableOpacity>
-                            </View>
+            <View style={styles.usersBox}>
+                {!group && groups?.length > 0 && (
+                    <View style={styles.section}>
+                        <Text style={styles.heading}>Select the Issue</Text>
+                        {groups.map((group) => (
+                            <TouchableOpacity
+                                key={group._id}
+                                style={styles.button}
+                                onPress={() => setGroup(group)}
+                            >
+                                <Text style={styles.buttonText}>{group.name}</Text>
+                            </TouchableOpacity>
                         ))}
-
                     </View>
                 )}
-
-
+            </View>
+                {group && (
+                    <TicketCreationForm
+                        group={group}
+                        fetchAllTickets={fetchAllTickets}
+                        setGroup={setGroup}
+                    />
+                )}
+                <View style={styles.usersBox}>
+                    {allTickets?.length > 0 && (
+                    <View style={styles.section}>
+                        <Text style={styles.heading}>Your Tickets</Text>
+                        {allTickets.map((ticket) => (
+                            <View key={ticket._id} style={styles.ticketCard}>
+                                <Text style={styles.ticketTitle}>{ticket.title}</Text>
+                                <Text style={styles.ticketInfo}>Comment: {ticket.comment}</Text>
+                                <Text style={styles.ticketInfo}>Priority: {ticket.priority}</Text>
+                                <Text style={styles.ticketInfo}>
+                                    Group: {groups.find(group => group._id === ticket.assignedGroup)?.name || 'N/A'}
+                                </Text>
+                                <Text style={styles.ticketInfo}>
+                                    Workers: {ticket.assignedWorker ? "Worker Assigned" : "No Workers Assigned Yet"}
+                                </Text>
+                                <Text style={styles.ticketInfo}>Created On: {ticket.createdDate}</Text>
+                                <Text style={styles.statues}>Status: {ticket.status?.text}</Text>
+                            </View>
+                        ))}
+                    </View>
+                 )}
+                </View>
             </ScrollView>
         </LinearGradient>
     );
@@ -112,136 +100,65 @@ const styles = StyleSheet.create({
     container: {
         padding: 20,
     },
-    heading: {
-        fontSize: 26,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        marginBottom: 25,
-        color: '#333',
-    },
-    taskItem: {
-        backgroundColor: '#fff',
-        padding: 15,
-        borderRadius: 12,
-        marginBottom: 15,
-        elevation: 5,
-        shadowColor: '#000',
-        shadowOpacity: 0.08,
-        shadowOffset: { width: 0, height: 2 },
-        shadowRadius: 6,
-    },
-    taskTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        marginBottom: 6,
-        color: '#222',
-    },
-    taskStatus: {
-        color: '#666',
-        marginBottom: 10,
-    },
-    updateButton: {
-        backgroundColor: '#0077cc',
-        paddingVertical: 10,
-        borderRadius: 8,
-        alignItems: 'center',
-    },
-    updateText: {
-        color: '#fff',
-        fontWeight: '600',
-    },
-    updateSection: {
+    section: {
         marginTop: 30,
-        backgroundColor: '#fff',
-        padding: 20,
-        borderRadius: 12,
-        shadowColor: '#000',
-        shadowOpacity: 0.1,
-        shadowOffset: { width: 0, height: 3 },
-        shadowRadius: 8,
-        elevation: 6,
     },
-    input: {
-        borderWidth: 1,
-        borderColor: '#ddd',
-        padding: 12,
-        borderRadius: 10,
-        marginBottom: 15,
-        backgroundColor: '#f8f8f8',
-        fontSize: 16,
-    },
-    submitButton: {
-        backgroundColor: '#28a745',
-        paddingVertical: 14,
-        borderRadius: 10,
-        alignItems: 'center',
-        marginTop: 10,
-    },
-    submitText: {
-        color: '#fff',
-        fontWeight: '600',
-        fontSize: 16,
-    },
-
-    multiSelectWrapper: {
+    heading: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#222',
+        textAlign: 'center',
         marginBottom: 20,
-    },
-
-    // Additional styles for enhanced form UX
-    label: {
-        fontSize: 16,
-        fontWeight: '500',
-        marginBottom: 6,
-        color: '#444',
-    },
-    pickerWrapper: {
-        borderWidth: 1,
-        borderColor: '#ccc',
-        borderRadius: 10,
-        marginBottom: 15,
-        backgroundColor: '#f0f0f0',
-    },
-    picker: {
-        height: 50,
-        width: '100%',
-    },
-    toggleContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 15,
-        justifyContent: 'space-between',
-    },
-    multiSelectOption: {
-        padding: 10,
-        borderRadius: 8,
-        backgroundColor: '#eee',
-        marginBottom: 8,
-    },
-    selectedOption: {
-        backgroundColor: '#cce5ff',
-    },
-    dateText: {
-        padding: 12,
-        borderWidth: 1,
-        borderColor: '#ccc',
-        borderRadius: 10,
-        backgroundColor: '#f8f8f8',
-        fontSize: 16,
-        marginBottom: 15,
-        color: '#333',
     },
     button: {
-        width: '80%',
-        paddingVertical: 15,
+        backgroundColor: '#0077cc',
+        paddingVertical: 14,
+        paddingHorizontal: 20,
         borderRadius: 10,
-        marginBottom: 20,
         alignItems: 'center',
-        elevation: 2, 
+        marginBottom: 15,
+        elevation: 2,
     },
     buttonText: {
-        fontSize: 18,
         color: '#fff',
+        fontSize: 16,
         fontWeight: '600',
     },
+    usersBox: {
+        backgroundColor: '#f9fbfd',
+        padding: 18,
+        borderRadius: 16,
+        shadowColor: '#000',
+        shadowOpacity: 0.03,
+        shadowOffset: { width: 0, height: 2 },
+        shadowRadius: 6,
+        elevation: 2,
+        marginBottom: 30,
+    },
+    ticketCard: {
+        backgroundColor: '#ffffff',
+        borderRadius: 12,
+        padding: 18,
+        marginBottom: 15,
+        shadowColor: '#000',
+        shadowOpacity: 0.07,
+        shadowOffset: { width: 0, height: 2 },
+        shadowRadius: 6,
+        elevation: 4,
+    },
+    ticketTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#222',
+        marginBottom: 8,
+    },
+    ticketInfo: {
+        fontSize: 15,
+        color: '#555',
+        marginBottom: 6,
+        
+    },
+    statues:{
+        color: "#007bff",
+    }
 });
-

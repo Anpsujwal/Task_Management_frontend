@@ -94,7 +94,9 @@ export default function TaskDashboard() {
   return (
     <ScrollView style={styles.container}>
       <GoBackToDashboard />
-      {!filterByDate && <Button title="Filter Tasks By Date" onPress={() => { setFilterByDate(true) }}></Button>}
+      {!filterByDate && <TouchableOpacity style={styles.filterButton} onPress={() => setFilterByDate(true)}>
+                                <Text style={styles.filterButtonText}>Filter Tasks By Date</Text>
+                              </TouchableOpacity>}
 
       {filterByDate && <FilterByDate tasks={tasks} setFilteredTasks={setFilteredTasks} setFilterByDate={setFilterByDate} />}
 
@@ -119,8 +121,8 @@ export default function TaskDashboard() {
 
         </View>
       )}
-
-      <View style={{ marginTop: 30 }}>
+      <View style={styles.usersBox}>
+        <View style={{ marginTop: 30 }}>
         <Text style={styles.heading}>Your Tasks</Text>
         {tasks.map((task) => (
           <View key={task._id}>
@@ -140,12 +142,10 @@ export default function TaskDashboard() {
           </View>
         ))}
 
-
-
-
+       </View>
       </View>
-
-      <View style={{ marginTop: 30 }}>
+      <View style={styles.usersBox}>
+        <View style={{ marginTop: 30 }}>
         <Text style={styles.heading}>Group Tasks</Text>
         {groupTasks.map((task) => (
           <View key={task._id}>
@@ -188,6 +188,7 @@ export default function TaskDashboard() {
 
           </View>
         ))}
+       </View>
       </View>
 
 
@@ -207,95 +208,85 @@ export default function TaskDashboard() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 20 },
-  heading: { fontSize: 24, fontWeight: 'bold', marginBottom: 15 },
-  taskCard: {
-    padding: 15,
-    marginBottom: 10,
-    backgroundColor: '#f0f4f7',
-    borderRadius: 8
-  },
-  taskTitle: { fontSize: 18, fontWeight: '600' },
-  taskDesc: { fontSize: 14, color: '#555' },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  gradient: {
-    flex: 1,
-  },
   container: {
     padding: 20,
+    backgroundColor: '#f9fafe',
   },
   heading: {
     fontSize: 26,
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 25,
-    color: '#333',
+    color: '#1e3a8a', // deep blue
   },
+    filterButton: {
+    backgroundColor: "#3498DB",
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginBottom: 16,
+    alignItems: "center",
+  },
+  filterButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+    usersBox: {
+  backgroundColor: '#f9fbfd',
+  padding: 10,
+  borderRadius: 16,
+  shadowColor: '#000',
+  shadowOpacity: 0.03,
+  shadowOffset: { width: 0, height: 2 },
+  shadowRadius: 4,
+  elevation: 2,
+  marginBottom: 30,
+},
   taskItem: {
     backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 15,
-    elevation: 5,
+    padding: 18,
+    borderRadius: 14,
+    marginBottom: 20,
+    elevation: 3,
     shadowColor: '#000',
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.06,
     shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
+    shadowRadius: 4,
+    borderLeftWidth: 4,
+    borderLeftColor: '#3b82f6', 
   },
   taskTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 6,
-    color: '#222',
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 8,
+    color: '#1e40af',
   },
   taskStatus: {
-    color: '#666',
-    marginBottom: 10,
+    fontSize: 15,
+    color: '#555',
+    marginBottom: 6,
   },
-  updateButton: {
-    backgroundColor: '#0077cc',
+  selectedTask: {
+    fontSize: 15,
+    color: '#2563eb',
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  button: {
+    marginVertical: 6,
     paddingVertical: 10,
     borderRadius: 8,
+    backgroundColor: '#2563eb',
     alignItems: 'center',
   },
-  updateText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  updateSection: {
-    marginTop: 30,
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 15,
-    backgroundColor: '#f8f8f8',
-    fontSize: 16,
-  },
-  submitButton: {
-    backgroundColor: '#28a745',
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  submitText: {
+  buttonText: {
     color: '#fff',
     fontWeight: '600',
     fontSize: 16,
-  },
-
-  multiSelectWrapper: {
-    marginBottom: 20,
   },
 });

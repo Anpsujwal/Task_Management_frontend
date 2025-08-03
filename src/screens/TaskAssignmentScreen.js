@@ -1,11 +1,10 @@
-import  { useEffect, useState,useContext } from 'react';
+import { useEffect, useState, useContext } from 'react';
 import {
   View, Text, TouchableOpacity,
-   StyleSheet, Alert, ScrollView,Button
+  StyleSheet, Alert, ScrollView, FlatList
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../api/api';
-
 
 import TaskEditComponent from '../Components/TaskEditComponent';
 import GoBackToDashboard from '../Components/GoToDashboard';
@@ -25,7 +24,6 @@ export default function TaskManagementScreen() {
   const [createNewTask, setCreateNewTask] = useState(false);
   const [filterByDate, setFilterByDate] = useState(false);
   const [filteredTasks, setFilteredTasks] = useState([]);
-  
 
   const [selectedTaskDetails, setSelectedTaskDetails] = useState(null);
 
@@ -47,7 +45,6 @@ export default function TaskManagementScreen() {
     }
   }
 
-
   const fetchUsers = async () => {
     try {
       const res = await api.get('/api/users');
@@ -58,83 +55,129 @@ export default function TaskManagementScreen() {
     }
   };
 
-   useEffect(() => {
+  useEffect(() => {
     fetchAllTasks();
     fetchUsers();
     fetchGroup();
     setSelectedTaskDetails(null);
-  },[]);
-
-  
+  }, []);
 
   return (
-    <LinearGradient colors={['#fdfbfb', '#ebedee']} style={styles.gradient}>
-      <GoBackToDashboard/>
+    <LinearGradient colors={['#f9fcff', '#f1f5f9']} style={styles.gradient}>
+      <GoBackToDashboard />
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.heading}>Task Management</Text>
 
-        {!createNewTask && <Button title="Create Task" onPress={()=>{setCreateNewTask(true);setFilterByDate(false)}}></Button>}
-        {!filterByDate && <Button title="Filter Tasks By Date" onPress={()=>{setFilterByDate(true);setCreateNewTask(false)}}></Button>}
+        {!createNewTask && (
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={() => { setCreateNewTask(true); setFilterByDate(false); }}
+          >
+            <Text style={styles.primaryButtonText}>+ Create Task</Text>
+          </TouchableOpacity>
+        )}
 
-        {createNewTask && <TaskCreationForm users={users} group={group} fetchAllTasks={fetchAllTasks} setCreateNewTask={setCreateNewTask}></TaskCreationForm>}
-        { filterByDate && <FilterByDate tasks={allTasks} setFilteredTasks={setFilteredTasks} setFilterByDate={setFilterByDate} />}
+        {!filterByDate && (
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={() => { setFilterByDate(true); setCreateNewTask(false); }}
+          >
+            <Text style={styles.secondaryButtonText}>📅 Filter Tasks by Date</Text>
+          </TouchableOpacity>
+        )}
 
-        { filteredTasks.length > 0 && (
+        {createNewTask && (
+          <TaskCreationForm
+            users={users}
+            group={group}
+            fetchAllTasks={fetchAllTasks}
+            setCreateNewTask={setCreateNewTask}
+          />
+        )}
+
+        {filterByDate && (
+          <FilterByDate
+            tasks={allTasks}
+            setFilteredTasks={setFilteredTasks}
+            setFilterByDate={setFilterByDate}
+          />
+        )}
+
+        {filteredTasks.length > 0 && (
           <View style={{ marginTop: 30 }}>
-            <Text style={styles.heading}>Filtered Tasks</Text>
-            {filteredTasks.map((task) => (
-              <View key={task._id}>
-              <TouchableOpacity
-                style={styles.taskItem}
-                onPress={() => { setSelectedTaskDetails(task) }}
-              >
-                <Text style={styles.taskTitle}>{task.title}</Text>
-                <Text style={styles.taskStatus}>Priority: {task.priority}</Text>
-                <Text style={styles.taskStatus}>scheduleFor: {task.scheduleFor}</Text>
-                <Text style={styles.taskStatus}>
-                  Assigned Workers: {task.assignedWorkers?.length || 0}
-                </Text>
-                <Text style={styles.taskStatus}>Status: {task.status?.text}</Text>
-              </TouchableOpacity>
-              {selectedTaskDetails && selectedTaskDetails._id===task._id && <TaskEditComponent selectedTaskDetails={selectedTaskDetails} setSelectedTaskDetails={setSelectedTaskDetails} users={users} groups={groups} fetchTasks={fetchAllTasks}/>}
-              </View>
-            ))}
-            
+            <Text style={styles.subHeading}>Filtered Tasks</Text>
+            <FlatList
+              data={filteredTasks}
+              keyExtractor={(item) => item._id}
+              renderItem={({ item: task }) => (
+                <View>
+                  <TouchableOpacity
+                    style={styles.taskItem}
+                    onPress={() => setSelectedTaskDetails(task)}
+                  >
+                    <Text style={styles.taskTitle}>{task.title}</Text>
+                    <Text style={styles.taskDetail}>Priority: {task.priority}</Text>
+                    <Text style={styles.taskDetail}>Schedule For: {task.scheduleFor}</Text>
+                    <Text style={styles.taskDetail}>
+                      Assigned Workers: {task.assignedWorkers?.length || 0}
+                    </Text>
+                    <Text style={styles.taskDetail}>Status: {task.status?.text}</Text>
+                  </TouchableOpacity>
+
+                  {selectedTaskDetails && selectedTaskDetails._id === task._id && (
+                    <TaskEditComponent
+                      selectedTaskDetails={selectedTaskDetails}
+                      setSelectedTaskDetails={setSelectedTaskDetails}
+                      users={users}
+                      groups={group}
+                      fetchTasks={fetchAllTasks}
+                    />
+                  )}
+                </View>
+              )}
+            />
           </View>
         )}
 
-        
-
-        { allTasks.length > 0 && (
+        {allTasks.length > 0 && (
           <View style={{ marginTop: 30 }}>
-            <Text style={styles.heading}>Created Tasks</Text>
-            {allTasks.map((task) => (
-              <View key={task._id}>
-              <TouchableOpacity
-                style={styles.taskItem}
-                onPress={() => { setSelectedTaskDetails(task) }}
-              >
-                <Text style={styles.taskTitle}>{task.title}</Text>
-                <Text style={styles.taskStatus}>Priority: {task.priority}</Text>
-                <Text style={styles.taskStatus}>scheduleFor: {task.scheduleFor}</Text>
-                <Text style={styles.taskStatus}>
-                  Group:{group?.name || 'None'}
-                </Text>
-                <Text style={styles.taskStatus}>
-                  Workers:{task.assignToEntireGroup? 'Assigned to entire group' : 
-                   task.assignedWorkers?.length || 0}
-                
-                </Text>
-                <Text style={styles.taskStatus}>Status: {task.status?.text}</Text>
-              </TouchableOpacity>
-              {selectedTaskDetails && selectedTaskDetails._id===task._id && <TaskEditComponent selectedTaskDetails={selectedTaskDetails} setSelectedTaskDetails={setSelectedTaskDetails} users={users}  fetchTasks={fetchAllTasks}/>}
-              </View>
-            ))}
-            
+            <Text style={styles.subHeading}>Created Tasks</Text>
+            <FlatList
+              data={allTasks}
+              keyExtractor={(item) => item._id}
+              renderItem={({ item: task }) => (
+                <View>
+                  <TouchableOpacity
+                    style={styles.taskItem}
+                    onPress={() => setSelectedTaskDetails(task)}
+                  >
+                    <Text style={styles.taskTitle}>{task.title}</Text>
+                    <Text style={styles.taskDetail}>Priority: {task.priority}</Text>
+                    <Text style={styles.taskDetail}>Schedule For: {task.scheduleFor}</Text>
+                    <Text style={styles.taskDetail}>
+                      Group: {group?.name || 'None'}
+                    </Text>
+                    <Text style={styles.taskDetail}>
+                      Workers: {task.assignToEntireGroup
+                        ? 'Assigned to entire group'
+                        : task.assignedWorkers?.length || 0}
+                    </Text>
+                    <Text style={styles.taskDetail}>Status: {task.status?.text}</Text>
+                  </TouchableOpacity>
+
+                  {selectedTaskDetails && selectedTaskDetails._id === task._id && (
+                    <TaskEditComponent
+                      selectedTaskDetails={selectedTaskDetails}
+                      setSelectedTaskDetails={setSelectedTaskDetails}
+                      users={users}
+                      fetchTasks={fetchAllTasks}
+                    />
+                  )}
+                </View>
+              )}
+            />
           </View>
         )}
-
-        
       </ScrollView>
     </LinearGradient>
   );
@@ -148,22 +191,52 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   heading: {
-    fontSize: 26,
-    fontWeight: 'bold',
+    fontSize: 28,
+    fontWeight: '700',
     textAlign: 'center',
     marginBottom: 25,
-    color: '#333',
+    color: '#2c3e50',
+  },
+  subHeading: {
+    fontSize: 22,
+    fontWeight: '600',
+    marginBottom: 15,
+    color: '#0077cc',
+  },
+  primaryButton: {
+    backgroundColor: '#0077cc',
+    padding: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  primaryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  secondaryButton: {
+    backgroundColor: '#e2f0fb',
+    padding: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  secondaryButtonText: {
+    color: '#0077cc',
+    fontSize: 16,
+    fontWeight: '600',
   },
   taskItem: {
-    backgroundColor: '#fff',
-    padding: 15,
+    backgroundColor: '#ffffff',
+    padding: 16,
     borderRadius: 12,
     marginBottom: 15,
-    elevation: 5,
     shadowColor: '#000',
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.05,
     shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
+    shadowRadius: 4,
+    elevation: 3,
   },
   taskTitle: {
     fontSize: 18,
@@ -171,99 +244,8 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     color: '#222',
   },
-  taskStatus: {
-    color: '#666',
-    marginBottom: 10,
-  },
-  updateButton: {
-    backgroundColor: '#0077cc',
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  updateText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  updateSection: {
-    marginTop: 30,
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 15,
-    backgroundColor: '#f8f8f8',
-    fontSize: 16,
-  },
-  submitButton: {
-    backgroundColor: '#28a745',
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  submitText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-
-  multiSelectWrapper: {
-    marginBottom: 20,
-  },
-
-  // Additional styles for enhanced form UX
-  label: {
-    fontSize: 16,
-    fontWeight: '500',
-    marginBottom: 6,
-    color: '#444',
-  },
-  pickerWrapper: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 10,
-    marginBottom: 15,
-    backgroundColor: '#f0f0f0',
-  },
-  picker: {
-    height: 50,
-    width: '100%',
-  },
-  toggleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
-    justifyContent: 'space-between',
-  },
-  multiSelectOption: {
-    padding: 10,
-    borderRadius: 8,
-    backgroundColor: '#eee',
-    marginBottom: 8,
-  },
-  selectedOption: {
-    backgroundColor: '#cce5ff',
-  },
-  dateText: {
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 10,
-    backgroundColor: '#f8f8f8',
-    fontSize: 16,
-    marginBottom: 15,
-    color: '#333',
+  taskDetail: {
+    color: '#555',
+    marginBottom: 4,
   },
 });
-

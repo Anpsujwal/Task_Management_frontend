@@ -1,227 +1,121 @@
 import { useState, useEffect, useContext } from "react";
 import api from "../api/api";
-import { Alert, View, Text, TouchableOpacity, StyleSheet, Button } from "react-native";
+import { Alert, View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import { AuthContext } from "../context/AuthContext";
 import GoBackToDashboard from "../Components/GoToDashboard";
 
-
 export default function AdminTicketManagement() {
+  const { user } = useContext(AuthContext);
+  const [tickets, setTickets] = useState([]);
 
-    const { user } = useContext(AuthContext)
-    const [tickets, setTickets] = useState([])
+  const fetchTickets = async () => {
+    try {
+      const res = await api.get(`/api/tickets/group/${user.group}`);
+      let tickets = res.data;
 
+      const updatedTickets = await Promise.all(
+        tickets.map(async (ticket) => {
+          if (ticket.assignedWorker) {
+            try {
+              const workerRes = await api.get(`/api/users/${ticket.assignedWorker}`);
+              return {
+                ...ticket,
+                assignedWorkerName: workerRes.data.name,
+              };
+            } catch (err) {
+              console.log("Error fetching worker:", err);
+              return ticket;
+            }
+          } else {
+            return ticket;
+          }
+        })
+      );
 
-    const fetchTickets = async () => {
-        try {
-            const res = await api.get(`/api/tickets/group/${user.group}`);
-            let tickets = res.data;
+      setTickets(updatedTickets);
+    } catch (err) {
+      Alert.alert("Error fetching tickets");
+    }
+  };
 
-            const updatedTickets = await Promise.all(
-                tickets.map(async (ticket) => {
-                    if (ticket.assignedWorker) {
-                        try {
+  useEffect(() => {
+    fetchTickets();
+  }, []);
 
-                            const workerRes = await api.get(`/api/users/${ticket.assignedWorker}`);
-                            return {
-                                ...ticket,
-                                assignedWorkerName: workerRes.data.name,
-                            };
-                        } catch (err) {
-                            console.log("Error fetching worker:", err);
-                            return ticket
-                              
-                        }
-                    } else {
-                        return ticket;
-                    }
-                })
-            );
+  return (
+    <View style={styles.page}>
+      <GoBackToDashboard />
 
-            setTickets(updatedTickets);
-        } catch (err) {
-            Alert.alert("Error fetching tickets");
-        }
-    };
+      <ScrollView contentContainerStyle={styles.container}>
+        {tickets?.length > 0 && (
+          <>
+            <Text style={styles.heading}>All Tickets</Text>
 
-
-
-
-    useEffect(() => {
-        fetchTickets()
-    }, [])
-
-
-
-
-    return (
-        <View>
-            <GoBackToDashboard />
-
-            {tickets?.length > 0 && (
-                <View style={{ marginTop: 30 }}>
-                    <Text style={styles.heading}>All Tickets</Text>
-                    {tickets.map((ticket) => (
-                        <View key={ticket._id}>
-                            <TouchableOpacity
-                                style={styles.taskItem}
-                            >
-                                <Text style={styles.taskTitle}>{ticket.title}</Text>
-                                <Text style={styles.taskStatus}>comment: {ticket.comment}</Text>
-                                <Text style={styles.taskStatus}>Priority: {ticket.priority}</Text>
-
-                                <Text style={styles.taskStatus}>
-                                    Worker Assigned: {ticket.assignedWorker ? ticket.assignedWorkerName : "No Workers Assigned Yet"}
-                                </Text>
-
-                                <Text style={styles.taskStatus}>Created On: {ticket.createdDate}</Text>
-                                <Text style={styles.taskStatus}>Status: {ticket.status?.text}</Text>
-
-                            </TouchableOpacity>
-                        </View>
-                    ))}
-
-                </View>
-            )}
-        </View>
-    )
+            {tickets.map((ticket) => (
+              <TouchableOpacity key={ticket._id} style={styles.ticketCard}>
+                <Text style={styles.ticketTitle}>{ticket.title}</Text>
+                <Text style={styles.ticketInfo}>Comment: {ticket.comment}</Text>
+                <Text style={styles.ticketInfo}>Priority: {ticket.priority}</Text>
+                <Text style={styles.ticketInfo}>
+                  Worker Assigned: {ticket.assignedWorkerName || "No Workers Assigned Yet"}
+                </Text>
+                <Text style={styles.ticketInfo}>Created On: {ticket.createdDate}</Text>
+                <Text style={styles.ticketStatus}>
+                  Status: {ticket.status?.text || "N/A"}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </>
+        )}
+      </ScrollView>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    gradient: {
-        flex: 1,
-    },
-    container: {
-        padding: 20,
-    },
-    heading: {
-        fontSize: 26,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        marginBottom: 25,
-        color: '#333',
-    },
-    taskItem: {
-        backgroundColor: '#fff',
-        padding: 15,
-        borderRadius: 12,
-        marginBottom: 15,
-        elevation: 5,
-        shadowColor: '#000',
-        shadowOpacity: 0.08,
-        shadowOffset: { width: 0, height: 2 },
-        shadowRadius: 6,
-    },
-    taskTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        marginBottom: 6,
-        color: '#222',
-    },
-    taskStatus: {
-        color: '#666',
-        marginBottom: 10,
-    },
-    updateButton: {
-        backgroundColor: '#0077cc',
-        paddingVertical: 10,
-        borderRadius: 8,
-        alignItems: 'center',
-    },
-    updateText: {
-        color: '#fff',
-        fontWeight: '600',
-    },
-    updateSection: {
-        marginTop: 30,
-        backgroundColor: '#fff',
-        padding: 20,
-        borderRadius: 12,
-        shadowColor: '#000',
-        shadowOpacity: 0.1,
-        shadowOffset: { width: 0, height: 3 },
-        shadowRadius: 8,
-        elevation: 6,
-    },
-    input: {
-        borderWidth: 1,
-        borderColor: '#ddd',
-        padding: 12,
-        borderRadius: 10,
-        marginBottom: 15,
-        backgroundColor: '#f8f8f8',
-        fontSize: 16,
-    },
-    submitButton: {
-        backgroundColor: '#28a745',
-        paddingVertical: 14,
-        borderRadius: 10,
-        alignItems: 'center',
-        marginTop: 10,
-    },
-    submitText: {
-        color: '#fff',
-        fontWeight: '600',
-        fontSize: 16,
-    },
-
-    multiSelectWrapper: {
-        marginBottom: 20,
-    },
-
-    // Additional styles for enhanced form UX
-    label: {
-        fontSize: 16,
-        fontWeight: '500',
-        marginBottom: 6,
-        color: '#444',
-    },
-    pickerWrapper: {
-        borderWidth: 1,
-        borderColor: '#ccc',
-        borderRadius: 10,
-        marginBottom: 15,
-        backgroundColor: '#f0f0f0',
-    },
-    picker: {
-        height: 50,
-        width: '100%',
-    },
-    toggleContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 15,
-        justifyContent: 'space-between',
-    },
-    multiSelectOption: {
-        padding: 10,
-        borderRadius: 8,
-        backgroundColor: '#eee',
-        marginBottom: 8,
-    },
-    selectedOption: {
-        backgroundColor: '#cce5ff',
-    },
-    dateText: {
-        padding: 12,
-        borderWidth: 1,
-        borderColor: '#ccc',
-        borderRadius: 10,
-        backgroundColor: '#f8f8f8',
-        fontSize: 16,
-        marginBottom: 15,
-        color: '#333',
-    },
-    button: {
-        width: '80%',
-        paddingVertical: 15,
-        borderRadius: 10,
-        marginBottom: 20,
-        alignItems: 'center',
-        elevation: 2,
-    },
-    buttonText: {
-        fontSize: 18,
-        color: '#fff',
-        fontWeight: '600',
-    },
+  page: {
+    flex: 1,
+    backgroundColor: '#f5faff',
+  },
+  container: {
+    padding: 20,
+    paddingBottom: 50,
+  },
+  heading: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 25,
+    color: '#1e3c72',
+  },
+  ticketCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 4,
+    borderLeftWidth: 5,
+    borderLeftColor: '#3498db',
+  },
+  ticketTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#2c3e50',
+    marginBottom: 10,
+  },
+  ticketInfo: {
+    fontSize: 15,
+    color: '#555',
+    marginBottom: 6,
+  },
+  ticketStatus: {
+    fontSize: 15,
+    color: '#1e90ff',
+    fontWeight: '600',
+    marginTop: 6,
+  },
 });

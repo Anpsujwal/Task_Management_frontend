@@ -34,60 +34,86 @@ export default function ReportSummaryDownload({ navigation, route }) {
         }
     };
 
-
     return (
-        <View style={{ flex: 1 }}>
-            {/* Exclude this button from capture */}
-            <Button title="Go Back" onPress={() => navigation.goBack()} />
-            <Button title="Download PDF" onPress={captureToPDF} />
+        <View style={styles.container}>
+            <View style={styles.buttonBox}>
+                <Text style={styles.boxTitle}></Text>
+                <View style={styles.buttonRow}>
+                    <Button title="Go Back" onPress={() => navigation.goBack()} />
+                    <Button title="Download PDF" onPress={captureToPDF} />
+                </View>
+            </View>
 
-            {/* Wrap the part you want to capture */}
-            <ViewShot
-                style={{ backgroundColor: "white" }}
-                ref={viewShotRef}
-                options={{ format: 'png', quality: 0.9, result: 'base64' }}
-            >
-                {tasks.length > 0 && (
-                    <Text style={styles.title}>Tasks Summary for this Month</Text>
-                )}
+            <ScrollView>
+                <ViewShot
+                    ref={viewShotRef}
+                    style={styles.viewShot}
+                    options={{ format: 'png', quality: 0.9, result: 'base64' }}
+                >
+                    {tasks.length > 0 ? (
+                        <Text style={styles.title}>Tasks Summary for this Month</Text>
+                    ) : (
+                        <Text style={styles.title}>No tasks found for this month</Text>
+                    )}
 
-                {categories.pending?.length > 0 && (
-                    <View>
-                        <Text style={styles.subTitle}>Pending Tasks</Text>
-                        <RenderTasks tasks={categories.pending}></RenderTasks>
-                    </View>
-                )}
+                    {categories.pending.length > 0 && (
+                        <View>
+                            <Text style={styles.subTitle}>Pending Tasks</Text>
+                            <RenderTasks tasks={categories.pending} />
+                        </View>
+                    )}
 
-                {categories.in_progress?.length > 0 && (
-                    <View>
-                        <Text style={styles.subTitle}>In Progress Tasks</Text>
-                        <RenderTasks tasks={categories.in_progress}></RenderTasks>
-                    </View>
-                )}
+                    {categories.in_progress.length > 0 && (
+                        <View>
+                            <Text style={styles.subTitle}>In Progress Tasks</Text>
+                            <RenderTasks tasks={categories.in_progress} />
+                        </View>
+                    )}
 
-                {categories.completed?.length > 0 && (
-                    <View>
-                        <Text style={styles.subTitle}>Completed Tasks</Text>
-                        <RenderTasks tasks={categories.completed}></RenderTasks>
-                    </View>
-                )}
+                    {categories.completed.length > 0 && (
+                        <View>
+                            <Text style={styles.subTitle}>Completed Tasks</Text>
+                            <RenderTasks tasks={categories.completed} />
+                        </View>
+                    )}
 
-                {categories.overdue?.length > 0 && (
-                    <View>
-                        <Text style={styles.subTitle}>Overdue Tasks</Text>
-                        <RenderTasks tasks={categories.overdue}></RenderTasks>
-                    </View>
-                )}
-
-                {tasks.length === 0 && (
-                    <Text style={styles.title}>No tasks found for this month</Text>
-                )}
-            </ViewShot>
+                    {categories.overdue.length > 0 && (
+                        <View>
+                            <Text style={styles.subTitle}>Overdue Tasks</Text>
+                            <RenderTasks tasks={categories.overdue} />
+                        </View>
+                    )}
+                </ViewShot>
+            </ScrollView>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: "#f8f8f8",
+    },
+    buttonBox: {
+        padding: 15,
+        backgroundColor: "#fff",
+        elevation: 4,
+        marginBottom: 10,
+    },
+    boxTitle: {
+        fontSize: 18,
+        fontWeight: "bold",
+        marginBottom: 10,
+        textAlign: "center",
+    },
+    buttonRow: {
+        flexDirection: "row",
+        justifyContent: "space-around",
+    },
+    viewShot: {
+        backgroundColor: "white",
+        padding: 10,
+    },
     title: {
         fontSize: 20,
         fontWeight: "bold",

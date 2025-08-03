@@ -1,134 +1,86 @@
-import {
-    View
-    , Text, FlatList, StyleSheet, ScrollView, Button
-} from "react-native";
+import { View, Text, FlatList, StyleSheet } from "react-native";
 
-export default function RenderTasks({ tasks }){
-    return (
-        <View>
-            
-            <FlatList
-                data={tasks}
-                keyExtractor={item => item._id}
-                renderItem={({ item }) => (
-                    <View style={styles.taskCard}>
-                        <Text style={styles.taskTitle}>{item.title}</Text>
-                        <Text>Status : <Text style={styles.status}>{item.status?.text}</Text></Text>
-                        {<Text>
-                            Assigned To : {" "}
-                            {item.assignedWorkers?.length > 0
-                                ? `${item.assignedWorkers.length} worker(s)`
-                                : item.assignedGroup?.name || "Unassigned"}
-                        </Text>}
-                        <Text>
-                            days from creation : {Math.floor((new Date() - new Date(item.createdDate)) / (1000 * 60 * 60 * 24))}
-                        </Text>
-                        <Text>
-                            Due Date : {" "}
-                            {item.dueDate
-                                ? item.dueDate
-                                : "N/A"}
-                        </Text>
-                        <Text>Created At: {item.createdDate}</Text>
+export default function RenderTasks({ tasks }) {
+  return (
+    <View style={styles.taskContainer}>
+      <FlatList
+        data={tasks}
+        keyExtractor={(item) => item._id}
+        contentContainerStyle={styles.flatListContent}
+        renderItem={({ item }) => (
+          <View style={styles.taskCard}>
+            <Text style={styles.taskTitle}>{item.title}</Text>
 
-                    </View>
-
-                )}
-
-            />
+            <View style={styles.row}>
+              <Text style={styles.label}>Status: </Text>
+              <View style={[styles.statusDot, getStatusStyle(item.status?.text)]} />
+              <Text style={styles.statusText}>{item.status?.text}</Text>
             </View>
-    )
+
+            <Text style={styles.text}>
+              Assigned To:{" "}
+              {item.assignedWorkers?.length > 0
+                ? `${item.assignedWorkers.length} worker(s)`
+                : item.assignedGroup?.name || "Unassigned"}
+            </Text>
+
+            <Text style={styles.text}>
+              Days from creation:{" "}
+              {Math.floor(
+                (new Date() - new Date(item.createdDate)) / (1000 * 60 * 60 * 24)
+              )}
+            </Text>
+
+            <Text style={styles.text}>
+              Due Date: {item.dueDate ? formatDate(item.dueDate) : "N/A"}
+            </Text>
+
+            <Text style={styles.text}>Created At: {formatDate(item.createdDate)}</Text>
+          </View>
+        )}
+      />
+    </View>
+  );
+}
+
+function getStatusStyle(status) {
+  switch (status) {
+    case "pending":
+      return { backgroundColor: "#f0ad4e" };
+    case "in_progress":
+      return { backgroundColor: "#5bc0de" };
+    case "completed":
+      return { backgroundColor: "#5cb85c" };
+    case "overdue":
+      return { backgroundColor: "#d9534f" };
+    default:
+      return { backgroundColor: "#999" };
+  }
+}
+
+function formatDate(date) {
+  const d = new Date(date);
+  return d.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 20,
-    backgroundColor: "#f0f2f5",
-    minHeight: "100vh",
-  },
-  centered: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    height: "100vh",
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    marginBottom: 20,
-    textAlign: "center",
-    color: "#333",
-  },
-  subTitle: {
-    fontSize: 22,
-    fontWeight: "600",
-    marginTop: 20,
-    marginBottom: 10,
-    textAlign: "center",
-    color: "#555",
-  },
-  cardRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    flexWrap: "wrap",
-    gap: 16,
-  },
-  card: {
-    flex: 1,
-    padding: 20,
-    margin: 5,
-    borderRadius: 12,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    minWidth: 140,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#fff",
-    marginBottom: 8,
-  },
-  cardCount: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#fff",
-  },
-  taskCard: {
-    backgroundColor: "#fff",
-    padding: 16,
-    marginVertical: 8,
-    borderRadius: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  taskTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 4,
-  },
-  status: {
-    fontWeight: "600",
-    color: "#007bff",
-  },
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: "#f0f2f5",
+  taskContainer: {
+    paddingHorizontal: 10,
   },
   flatListContent: {
-    paddingBottom: 150, // extra space to avoid clipping at the bottom
+    paddingBottom: 100,
   },
   taskCard: {
     backgroundColor: "#fff",
     padding: 16,
     marginVertical: 8,
     borderRadius: 10,
+    borderLeftWidth: 5,
+    borderLeftColor: "#007bff",
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 6,
@@ -137,11 +89,32 @@ const styles = StyleSheet.create({
   taskTitle: {
     fontSize: 18,
     fontWeight: "bold",
+    marginBottom: 6,
+    color: "#333",
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 4,
   },
-  status: {
-    fontWeight: "600",
-    color: "#007bff",
+  label: {
+    fontWeight: "500",
+    fontSize: 15,
   },
-
+  statusDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginHorizontal: 6,
+  },
+  statusText: {
+    fontWeight: "600",
+    color: "#333",
+    fontSize: 14,
+  },
+  text: {
+    fontSize: 14,
+    marginVertical: 1,
+    color: "#444",
+  },
 });

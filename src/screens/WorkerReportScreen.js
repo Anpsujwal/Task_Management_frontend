@@ -4,14 +4,16 @@ import api from "../api/api";
 import {Video, Audio } from "expo-av";
 import GoBackToDashboard from "../Components/GoToDashboard";
 import { AuthContext } from "../context/AuthContext";
-
+import FilterByDate from "../Components/FilterTaskByDate";
 
 
 export default function WorkerTaskReport() {
   const {user}=useContext(AuthContext);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filterByDate, setFilterByDate] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null); 
+  const [filteredTasksByDate, setFilteredTasksByDate] = useState([]);
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -31,10 +33,10 @@ export default function WorkerTaskReport() {
   const now = new Date();
 
   const categorizedCounts = {
-    pending: tasks.filter(t => t.status?.text === "pending").length,
-    in_progress: tasks.filter(t => t.status?.text === "in_progress").length,
-    completed: tasks.filter(t => t.status?.text === "completed").length,
-    overdue: tasks.filter(t => {
+    pending: (!filterByDate ? tasks : filteredTasksByDate).filter(t => t.status?.text === "pending").length,
+    in_progress:(!filterByDate ? tasks : filteredTasksByDate).filter(t => t.status?.text === "in_progress").length,
+    completed: (!filterByDate ? tasks : filteredTasksByDate).filter(t => t.status?.text === "completed").length,
+    overdue: (!filterByDate ? tasks : filteredTasksByDate).filter(t => {
       return (
         (t.status?.text !== "completed") &&
         t.completeBy?.dueDate &&
@@ -43,7 +45,7 @@ export default function WorkerTaskReport() {
     }).length,
   };
 
-  const filteredTasks = tasks.filter(task => {
+  const filteredTasks =(!filterByDate ? tasks : filteredTasksByDate).filter(task => {
     if (!selectedCategory) return false;
 
     if (selectedCategory === "overdue") {
@@ -84,6 +86,19 @@ export default function WorkerTaskReport() {
     <View style={styles.container}>
       <GoBackToDashboard/>
       <Text style={styles.title}>Task Summary</Text>
+
+      {!filterByDate ? (
+          <TouchableOpacity style={styles.filterButton} onPress={() => setFilterByDate(true)}>
+            <Text style={styles.filterButtonText}>Filter Tasks By Date</Text>
+          </TouchableOpacity>
+        ) : (
+          <FilterByDate
+            tasks={tasks}
+            setFilteredTasks={setFilteredTasksByDate}
+            setFilterByDate={setFilterByDate}
+          />
+        )}
+
 
       <View style={styles.cardRow}>
         {categories.map(cat => (
@@ -257,5 +272,26 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#007bff",
   },
+  filterButton: {
+    backgroundColor: "#007bff",
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+    alignSelf: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  filterButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+
 
 });

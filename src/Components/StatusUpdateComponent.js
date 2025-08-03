@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
-    View, Text, TextInput, Button, StyleSheet, Image,
-    Platform, ScrollView
+  View, Text, TextInput, Button, StyleSheet, Image,
+  Platform, ScrollView, TouchableOpacity
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import * as ImagePicker from 'expo-image-picker';
@@ -11,312 +11,233 @@ import * as MediaLibrary from 'expo-media-library';
 import api from '../api/api';
 
 export default function StatusUpdateForm({ task, user, onClose, onSuccess, type = "task" }) {
-    const [statusText, setStatusText] = useState(task.status.text);
-    const [description, setDescription] = useState('');
-    const [image, setImage] = useState(null);
-    const [video, setVideo] = useState(null);
-    const [audio, setAudio] = useState(null);
-    const [recording, setRecording] = useState(null);
-    const [submitting, setSubmitting] = useState(false);
+  const [statusText, setStatusText] = useState(task.status.text);
+  const [description, setDescription] = useState('');
+  const [image, setImage] = useState(null);
+  const [video, setVideo] = useState(null);
+  const [audio, setAudio] = useState(null);
+  const [recording, setRecording] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [sound, setSound] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
 
-    const [sound, setSound] = useState(null);
-    const [isPlaying, setIsPlaying] = useState(false);
+  useEffect(() => {
+    (async () => {
+      await ImagePicker.requestCameraPermissionsAsync();
+      await MediaLibrary.requestPermissionsAsync();
+      await Audio.requestPermissionsAsync();
+    })();
+  }, []);
 
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: 'Images',
+      base64: true,
+      quality: 0.7
+    });
+    if (!result.canceled) setImage(result.assets[0]);
+  };
 
-    useEffect(() => {
-        (async () => {
-            const cameraPerm = await ImagePicker.requestCameraPermissionsAsync();
+  const takePhoto = async () => {
+    let result = await ImagePicker.launchCameraAsync({
+      mediaTypes: 'Images',
+      base64: true,
+      quality: 0.7
+    });
+    if (!result.canceled) setImage(result.assets[0]);
+  };
 
-            // Media Library (if uploading or saving files)
-            const mediaPerm = await MediaLibrary.requestPermissionsAsync();
+  const recordVideo = async () => {
+    let result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+      quality: 1
+    });
+    if (!result.canceled) setVideo(result.assets[0]);
+  };
 
-            // Audio (for recording audio or audio in video)
-            const { granted: audioPerm } = await Audio.requestPermissionsAsync();
+  const startRecording = async () => {
+    try {
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      const { recording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      setRecording(recording);
+    } catch (err) {
+      console.error('Failed to start recording', err);
+    }
+  };
 
-            if (!cameraPerm.granted || !mediaPerm.granted || !audioPerm) {
-                alert('Camera, audio, and media permissions are required.');
-            }
-        })();
-    }, []);
+  const stopRecording = async () => {
+    if (!recording) return;
+    try {
+      await recording.stopAndUnloadAsync();
+      const uri = recording.getURI();
+      setAudio({ uri, name: 'recorded-audio.m4a', type: 'audio/m4a' });
+    } catch (error) {
+      console.error("Failed to stop recording", error);
+    } finally {
+      setRecording(undefined);
+    }
+  };
 
-    const pickImage = async () => {
-        let result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: 'Images',
-            base64: true,
-            quality: 0.7
-        });
+  const toggleAudioPlayback = async () => {
+    if (sound) {
+      if (isPlaying) {
+        await sound.pauseAsync();
+        setIsPlaying(false);
+      } else {
+        await sound.playAsync();
+        setIsPlaying(true);
+      }
+    } else if (audio?.uri) {
+      const { sound: newSound } = await Audio.Sound.createAsync({ uri: audio.uri }, { shouldPlay: true });
+      setSound(newSound);
+      setIsPlaying(true);
+    }
+  };
 
-        if (!result.canceled) setImage(result.assets[0]);
-    };
+  const submitUpdate = async () => {
+    setSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append('statusText', statusText);
+      formData.append('description', description);
+      formData.append('byUser', user._id);
 
-    const takePhoto = async () => {
-        let result = await ImagePicker.launchCameraAsync({
-            mediaTypes: 'Images',
-            base64: true,
-            quality: 0.7
-        });
+      if (image) formData.append('image', { uri: image.uri, name: 'status-image.jpg', type: 'image/jpeg' });
+      if (video) formData.append('video', { uri: video.uri, name: 'status-video.mp4', type: 'video/mp4' });
+      if (audio) formData.append('audio', { uri: audio.uri, name: audio.name || 'status-audio.m4a', type: audio.type || 'audio/m4a' });
 
-        if (!result.canceled) setImage(result.assets[0]);
-    };
+      const endpoint = type === "task" ? `/api/tasks/${task._id}/status` : `/api/tickets/${task._id}/status`;
+      await api.put(endpoint, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
 
-    const pickVideo = async () => {
-        let result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-            quality: 1
-        });
+      onSuccess();
+    } catch (err) {
+      console.error('Status update failed:', err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-        if (!result.canceled) setVideo(result.assets[0]);
-    };
+  useEffect(() => {
+    return sound ? () => sound.unloadAsync() : undefined;
+  }, [sound]);
 
-    const recordVideo = async () => {
-        let result = await ImagePicker.launchCameraAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-            quality: 1
-        });
+  return (
+    <ScrollView contentContainerStyle={styles.container}>
+      <Text style={styles.heading}>Update Task Status</Text>
+      <Text style={styles.label}>Current: {task.status.text}</Text>
 
-        if (!result.canceled) setVideo(result.assets[0]);
-    };
+      <Text style={styles.label}>New Status</Text>
+      <View style={styles.pickerWrapper}>
+        <Picker selectedValue={statusText} onValueChange={setStatusText} style={styles.picker}>
+          <Picker.Item label="Pending" value="pending" />
+          <Picker.Item label="In Progress" value="in_progress" />
+          <Picker.Item label="Completed" value="completed" />
+        </Picker>
+      </View>
 
-    const pickAudio = async () => {
-        const res = await DocumentPicker.getDocumentAsync({ type: 'audio/*' });
-        if (res.type !== 'cancel') setAudio(res);
-    };
+      <Text style={styles.label}>Description</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="What did you do?"
+        value={description}
+        onChangeText={setDescription}
+        multiline
+      />
 
-    const startRecording = async () => {
-        try {
-            await Audio.setAudioModeAsync({
-                allowsRecordingIOS: true,
-                playsInSilentModeIOS: true,
-            });
+      {image && <Image source={{ uri: image.uri }} style={styles.imagePreview} />}
 
-            const { recording } = await Audio.Recording.createAsync(
-                Audio.RecordingOptionsPresets.HIGH_QUALITY
-            );
+      <View style={styles.buttonRow}>
+        <Button title="Take Photo" onPress={takePhoto} />
+      </View>
 
-            setRecording(recording);
-        } catch (err) {
-            console.error('Failed to start recording', err);
+      {video && (
+        <Video
+          source={{ uri: video.uri }}
+          style={styles.videoPreview}
+          useNativeControls
+          resizeMode="contain"
+          isLooping
+        />
+      )}
+
+      <View style={styles.buttonRow}>
+        <Button title="Record Video" onPress={recordVideo} />
+      </View>
+
+      {audio && (
+        <Button title={isPlaying ? 'Pause Audio' : 'Play Audio'} onPress={toggleAudioPlayback} />
+      )}
+
+      <View style={styles.buttonRow}>
+        {recording
+          ? <Button title="Stop Recording" onPress={stopRecording} />
+          : <Button title="Record Audio" onPress={startRecording} />
         }
-    };
+      </View>
 
-    const stopRecording = async () => {
-        if (!recording) return;
-
-        try {
-            await recording.stopAndUnloadAsync();
-            const uri = recording.getURI();
-            setAudio({ uri, name: 'recorded-audio.m4a', type: 'audio/m4a' });
-        } catch (error) {
-            console.error("Failed to stop recording", error);
-        } finally {
-            setRecording(undefined);
-        }
-    };
-
-    const submitUpdate = async () => {
-        setSubmitting(true);
-
-        try {
-            const formData = new FormData();
-            formData.append('statusText', statusText);
-            formData.append('description', description);
-            formData.append('byUser', user._id);
-
-            if (Platform.OS === 'web') {
-
-                if (image) {
-                    let imgBlob;
-                    const response = await fetch(image.uri);
-                    imgBlob = await response.blob();
-                    formData.append('image', imgBlob);
-                }
-
-                if (video) {
-                    let videoBlob;
-                    const response = await fetch(video.uri);
-                    videoBlob = await response.blob();
-                    formData.append('video', videoBlob);
-                }
-                if (audio) {
-                    let audioBlob;
-                    const response = await fetch(audio.uri);
-                    audioBlob = await response.blob();
-                    formData.append('audio', audioBlob);
-                }
-            } else {
-                if (image) {
-                    formData.append('image', {
-                        uri: image.uri,
-                        name: 'status-image.jpg',
-                        type: 'image/jpeg'
-                    });
-                }
-
-                if (video) {
-                    formData.append('video', {
-                        uri: video.uri,
-                        name: 'status-video.mp4',
-                        type: 'video/mp4'
-                    });
-                }
-
-                if (audio) {
-                    formData.append('audio', {
-                        uri: audio.uri,
-                        name: audio.name || 'status-audio.m4a',
-                        type: audio.type || 'audio/m4a'
-                    });
-                }
-            }
-            if (type === "task") {
-                await api.put(`/api/tasks/${task._id}/status`, formData, {
-                    headers: {
-                        'Content-Type': 'multipart/form-data',
-                    },
-                });
-            } else if (type === "ticket") {
-                await api.put(`/api/tickets/${task._id}/status`, formData, {
-                    headers: {
-                        'Content-Type': 'multipart/form-data',
-                    },
-                });
-            }
-
-            onSuccess();
-        } catch (err) {
-            console.error('Status update failed:', err);
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-    useEffect(() => {
-        return sound
-            ? () => {
-                sound.unloadAsync();
-            }
-            : undefined;
-    }, [sound]);
-
-
-    const toggleAudioPlayback = async () => {
-        if (sound) {
-            if (isPlaying) {
-                await sound.pauseAsync();
-                setIsPlaying(false);
-            } else {
-                await sound.playAsync();
-                setIsPlaying(true);
-            }
-        } else if (audio?.uri) {
-            const { sound: newSound } = await Audio.Sound.createAsync(
-                { uri: audio.uri },
-                { shouldPlay: true }
-            );
-            setSound(newSound);
-            setIsPlaying(true);
-        }
-    };
-
-
-    return (
-        <ScrollView contentContainerStyle={styles.container}>
-            <Text style={styles.heading}>Update Task Status</Text>
-            <Text>Current: {task.status.text}</Text>
-
-            <Text>Status:</Text>
-            <Picker
-                selectedValue={statusText}
-                onValueChange={(val) => setStatusText(val)}
-                style={{ height: 50, width: 200, marginBottom: 10 }}
-            >
-                <Picker.Item label="Pending" value="pending" />
-                <Picker.Item label="In Progress" value="in_progress" />
-                <Picker.Item label="Completed" value="completed" />
-            </Picker>
-
-            <Text>Description of update:</Text>
-            <TextInput
-                style={styles.input}
-                placeholder="What did you do?"
-                value={description}
-                onChangeText={setDescription}
-            />
-
-            {image && <Image source={{ uri: image.uri }} style={styles.imagePreview} />}
-
-            <View style={styles.buttons}>
-                <Button title="Take Photo" onPress={takePhoto} />
-                <Button title="Upload Image" onPress={pickImage} />
-            </View>
-
-            {video && Platform.OS !== 'web' ? (
-                <Video
-                    source={{ uri: video.uri }}
-                    style={{ width: 300, height: 200 }}
-                    useNativeControls
-                    resizeMode="contain"
-                    isLooping
-                />
-            ) : (
-                video && (
-                    <Video
-                        src={video.uri}
-                        style={{ width: 300, height: 200 }}
-                        controls
-                    />
-                )
-            )}
-
-
-            <View style={styles.buttons}>
-                <Button title="Record Video" onPress={recordVideo} />
-                <Button title="Upload Video" onPress={pickVideo} />
-            </View>
-
-            {audio && (
-                <Button
-                    title={isPlaying ? 'Pause Audio' : 'Play Audio'}
-                    onPress={toggleAudioPlayback}
-                />
-            )}
-
-
-            <View style={styles.buttons}>
-                <Button title="Pick Audio" onPress={pickAudio} />
-                {recording ? (
-                    <Button title="Stop Recording" onPress={stopRecording} />
-                ) : (
-                    <Button title="Record Audio" onPress={startRecording} />
-                )}
-            </View>
-
-            <View style={styles.buttons}>
-                <Button title="Submit" onPress={submitUpdate} disabled={submitting} />
-                <Button title="Cancel" onPress={onClose} />
-            </View>
-        </ScrollView>
-    );
+      <View style={styles.submitRow}>
+        <Button title="Submit" onPress={submitUpdate} disabled={submitting} />
+        <Button title="Cancel" onPress={onClose} color="#999" />
+      </View>
+    </ScrollView>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: { padding: 20 },
-    heading: { fontSize: 20, fontWeight: 'bold', marginBottom: 10 },
-    input: {
-        borderWidth: 1,
-        borderColor: '#ccc',
-        padding: 8,
-        marginVertical: 10,
-        borderRadius: 4
-    },
-    imagePreview: {
-        width: 200,
-        height: 200,
-        marginVertical: 10
-    },
-    buttons: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        marginTop: 15
-    }
+  container: {
+    backgroundColor: '#fefefe',
+    padding: 20,
+  },
+  heading: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    color: '#333',
+  },
+  label: {
+    fontSize: 16,
+    marginTop: 10,
+    marginBottom: 5,
+    color: '#555',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    textAlignVertical: 'top',
+  },
+  pickerWrapper: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    overflow: 'hidden',
+    marginBottom: 10,
+  },
+  picker: {
+    height: 50,
+    width: '100%',
+  },
+  imagePreview: {
+    width: '100%',
+    height: 200,
+    borderRadius: 10,
+    marginVertical: 10,
+  },
+  videoPreview: {
+    width: '100%',
+    height: 220,
+    borderRadius: 10,
+    marginVertical: 10,
+  },
+  buttonRow: {
+    marginVertical: 10,
+  },
+  submitRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+  },
 });
