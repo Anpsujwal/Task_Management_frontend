@@ -28,19 +28,19 @@ export default function FilterTicketsByDate({ tickets, setFilteredTickets, setFi
       const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
       const endOfMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
       setFilteredTickets(tickets?.filter(ticket => {
-        const ticketDate = new Date(ticket.dueDate);
+        const ticketDate = new Date(ticket.createdDate);
         return ticketDate >= startOfMonth && ticketDate <= endOfMonth;
       }));
     } else if (filterOption === 'thisYear') {
       const startOfYear = new Date(new Date().getFullYear(), 0, 1);
       const endOfYear = new Date(new Date().getFullYear(), 11, 31);
       setFilteredTickets(tickets?.filter(ticket => {
-        const ticketDate = new Date(ticket.dueDate);
+        const ticketDate = new Date(ticket.createdDate);
         return ticketDate >= startOfYear && ticketDate <= endOfYear;
       }));
     } else if (filterOption === 'specificDay') {
       setFilteredTickets(tickets?.filter(ticket => {
-        const ticketDate = new Date(ticket.dueDate);
+        const ticketDate = new Date(ticket.createdDate);
         return ticketDate.toDateString() === specificDate.toDateString();
       }));
     }

@@ -8,6 +8,7 @@ import {
   Image,
   Button,
   ScrollView,
+  LogBox
 } from "react-native";
 import React, { useEffect, useState, useContext } from "react";
 import api from "../api/api";
@@ -25,6 +26,9 @@ export default function TicketReportScreen({ navigation }) {
   const [filteredTicketsByDate, setFilteredTicketsByDate] = useState([]);
 
   useEffect(() => {
+    LogBox.ignoreLogs([
+      'VirtualizedLists should never be nested', // Ignore this warning
+    ]);
     const fetchTickets = async () => {
       try {
         if (!user.isAdmin) {
@@ -111,7 +115,7 @@ export default function TicketReportScreen({ navigation }) {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <GoBackToDashboard />
       <Text style={styles.title}>Ticket Summary</Text>
 
@@ -215,7 +219,7 @@ export default function TicketReportScreen({ navigation }) {
           />
         </>
       )}
-    </View>
+    </ScrollView>
   );
 }
 

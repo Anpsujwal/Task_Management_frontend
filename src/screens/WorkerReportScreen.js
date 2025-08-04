@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image, ScrollView, Button } from "react-native";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image, ScrollView, Button ,LogBox} from "react-native";
 import { useEffect, useState, useContext } from "react";
 import api from "../api/api";
 import { Video, Audio } from "expo-av";
@@ -14,11 +14,11 @@ export default function WorkerTaskReport() {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [filterByDate, setFilterByDate] = useState(false);
   const [filteredTasksByDate, setFilteredTasksByDate] = useState([]);
-  const [filterByDate, setFilterByDate] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState(null); 
-  const [filteredTasksByDate, setFilteredTasksByDate] = useState([]);
-
+  
   useEffect(() => {
+    LogBox.ignoreLogs([
+      'VirtualizedLists should never be nested', // Ignore this warning
+    ]);
     const fetchTasks = async () => {
       try {
         const res = await api.get(`/api/tasks/alltasks/user/${user._id}`);
@@ -86,7 +86,7 @@ export default function WorkerTaskReport() {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <GoBackToDashboard />
       <Text style={styles.title}>Task Summary</Text>
 
@@ -170,7 +170,7 @@ export default function WorkerTaskReport() {
           />
         </>
       )}
-    </View>
+    </ScrollView>
   );
 }
 

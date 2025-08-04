@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../api/api';
-
+import { LogBox } from 'react-native';
 import TaskEditComponent from '../Components/TaskEditComponent';
 import GoBackToDashboard from '../Components/GoToDashboard';
 import TaskCreationForm from '../Components/TaskCreationForm';
@@ -62,6 +62,11 @@ export default function TaskManagementScreen() {
     setSelectedTaskDetails(null);
   }, []);
 
+  useEffect(() => {
+      LogBox.ignoreLogs([
+        'VirtualizedLists should never be nested', // Ignore this warning
+      ]);
+    }, []);
   return (
     <LinearGradient colors={['#f9fcff', '#f1f5f9']} style={styles.gradient}>
       <GoBackToDashboard />
@@ -103,7 +108,7 @@ export default function TaskManagementScreen() {
           />
         )}
 
-        {filteredTasks.length > 0 && (
+        {filteredTasks.length > 0  (
           <View style={{ marginTop: 30 }}>
             <Text style={styles.subHeading}>Filtered Tasks</Text>
             <FlatList

@@ -5,7 +5,7 @@ import { Video, Audio } from "expo-av";
 import GoBackToDashboard from "../Components/GoToDashboard";
 import { AuthContext } from "../context/AuthContext";
 import FilterByDate from "../Components/FilterTaskByDate";
-
+import { LogBox } from 'react-native';
 export default function TaskDashboard({ navigation }) {
   const { user, type } = useContext(AuthContext);
   const [tasks, setTasks] = useState([]);
@@ -38,6 +38,13 @@ export default function TaskDashboard({ navigation }) {
     };
     fetchTasks();
   }, []);
+
+  useEffect(() => {
+    LogBox.ignoreLogs([
+      'VirtualizedLists should never be nested', // Ignore this warning
+    ]);
+  }, []);
+  
 
   const now = new Date();
 
@@ -105,19 +112,17 @@ export default function TaskDashboard({ navigation }) {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <GoBackToDashboard />
       {type === "tenant" ? <Text style={styles.title}>Ticket Summary</Text> : <Text style={styles.title}>Task Summary</Text>}
 
 
-
-      {!filterByDate && <TouchableOpacity style={styles.filterButton} onPress={() => setFilterByDate(true)}>
+      {type === "staff" &&
+      (!filterByDate ? <TouchableOpacity style={styles.filterButton} onPress={() => setFilterByDate(true)}>
                           <Text style={styles.filterButtonText}>Filter Tasks By Date</Text>
                         </TouchableOpacity>
-      }
-
-
-      {filterByDate && <FilterByDate tasks={tasks} setFilteredTasks={setFilteredTasksByDate} setFilterByDate={setFilterByDate} />}
+      :<FilterByDate tasks={tasks} setFilteredTasks={setFilteredTasksByDate} setFilterByDate={setFilterByDate} />
+      )}
 
       <View style={styles.cardRow}>
         {categories.map(cat => (
@@ -195,7 +200,7 @@ export default function TaskDashboard({ navigation }) {
         </>
       )}
     </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -245,17 +250,16 @@ export default function TaskDashboard({ navigation }) {
   },
   card: {
     flexGrow: 1,
-    padding: 18,
-    margin: 6,
+    padding: 20,
+    margin: 5,
     borderRadius: 16,
     alignItems: "center",
-    justifyContent: "center",
-    minWidth: 150,
+    minWidth: 140,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 6,
-    elevation: 5,
+    elevation: 3,
   },
   cardTitle: {
     fontSize: 18,
