@@ -8,6 +8,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import api from '../api/api';
 import GoBackToDashboard from '../Components/GoToDashboard';
 import { AuthContext } from '../context/AuthContext';
+import { LogBox } from 'react-native';
+
 export default function UserManagementScreen() {
 
   const { user } = useContext(AuthContext);
@@ -127,7 +129,11 @@ export default function UserManagementScreen() {
     }
   }
 
-
+  useEffect(() => {
+  LogBox.ignoreLogs([
+    'VirtualizedLists should never be nested', // Ignore this warning
+  ]);
+}, []);
 
   useEffect(() => {
     fetchUsers();
@@ -141,7 +147,7 @@ export default function UserManagementScreen() {
     else setFilteredUsers( users);
   }, [users]);
 
-  return (
+ return (
     <LinearGradient colors={['#ece9e6', '#ffffff']} style={styles.gradient}>
       <GoBackToDashboard />
       <ScrollView contentContainerStyle={styles.container}>
@@ -155,7 +161,7 @@ export default function UserManagementScreen() {
             onChangeText={setName}
           />
           <TextInput
-            placeholder="userId"
+            placeholder="User ID"
             style={styles.input}
             value={userId}
             onChangeText={setUserId}
@@ -167,32 +173,33 @@ export default function UserManagementScreen() {
             value={password}
             onChangeText={setPassword}
           />
+
           <View style={styles.toggleContainer}>
             <Text style={[styles.label, !isAdmin && styles.selected]}>User</Text>
             <Switch
               value={isAdmin}
               onValueChange={setIsAdmin}
-              thumbColor={isAdmin ? '#1e90ff' : '#f4f3f4'}
-              trackColor={{ false: '#767577', true: '#81b0ff' }}
+              thumbColor={isAdmin ? '#007bff' : '#f4f3f4'}
+              trackColor={{ false: '#ccc', true: '#a3d2ff' }}
             />
             <Text style={[styles.label, isAdmin && styles.selected]}>Admin</Text>
           </View>
 
-          {isAdmin &&
+          {isAdmin && (
             <View style={styles.toggleContainer}>
               <Text style={[styles.label, !adminType && styles.selected]}>Group Admin</Text>
               <Switch
                 value={adminType}
                 onValueChange={setAdminType}
-                thumbColor={isAdmin ? '#1e90ff' : '#f4f3f4'}
-                trackColor={{ false: '#767577', true: '#81b0ff' }}
+                thumbColor={adminType ? '#007bff' : '#f4f3f4'}
+                trackColor={{ false: '#ccc', true: '#a3d2ff' }}
               />
               <Text style={[styles.label, adminType && styles.selected]}>Root Admin</Text>
             </View>
-          }
+          )}
 
           <Text style={styles.label}>Assign to Group</Text>
-          <View style={styles.input}>
+          <View style={styles.pickerWrapper}>
             <Picker
               selectedValue={assignedGroup}
               onValueChange={setAssignedGroup}
@@ -211,76 +218,71 @@ export default function UserManagementScreen() {
         </View>
 
         {filteredUsers?.length > 0 ? (
-          <View>
+          <>
             <Text style={styles.heading}>Existing Users</Text>
-            <FlatList
-              data={filteredUsers}
-              keyExtractor={item => item._id}
-              renderItem={({ item }) => (
-                <View style={styles.userItem}>
-                  <Text style={styles.userName}>ID: {item.userId}</Text>
-                  <Text style={styles.userEmail}>Name: {item.name}</Text>
-                  <Text style={styles.userRole}>Role: {item.isAdmin ? `${item.adminType} Admin` : 'worker'}</Text>
-                  <Text>Group:{groups.find((group) => group._id === item.group)?.name}</Text>
+            {filteredUsers.map(user => (
+              <View key={user._id} style={styles.userItem}>
+                <Text style={styles.userName}>ID: {user.userId}</Text>
+                <Text style={styles.userEmail}>Name: {user.name}</Text>
+                <Text style={styles.userRole}>Role: {user.isAdmin ? `${user.adminType} Admin` : 'Worker'}</Text>
+                <Text>Group: {groups.find(g => g._id === user.group)?.name || "N/A"}</Text>
 
-                  <View style={styles.buttonRow}>
+                <View style={styles.buttonRow}>
+                  <TouchableOpacity
+                    style={styles.smallButton}
+                    onPress={() => handleEditUser(user)}
+                  >
+                    <Text style={styles.smallButtonText}>Update</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.smallButton, { backgroundColor: '#dc3545' }]}
+                    onPress={() => handleDeleteUser(user._id)}
+                  >
+                    <Text style={styles.smallButtonText}>Delete</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {editingUserId === user._id && (
+                  <View style={styles.editContainer}>
+                    <TextInput
+                      value={editName}
+                      onChangeText={setEditName}
+                      placeholder="Edit name"
+                      style={styles.input}
+                    />
+                    <View style={styles.toggleContainer}>
+                      <Text style={[styles.label, !editIsAdmin && styles.selected]}>User</Text>
+                      <Switch
+                        value={editIsAdmin}
+                        onValueChange={setEditIsAdmin}
+                        thumbColor={editIsAdmin ? '#007bff' : '#f4f3f4'}
+                        trackColor={{ false: '#ccc', true: '#a3d2ff' }}
+                      />
+                      <Text style={[styles.label, editIsAdmin && styles.selected]}>Admin</Text>
+                    </View>
+                    {editIsAdmin && (
+                      <View style={styles.toggleContainer}>
+                        <Text style={[styles.label, !editAdminType && styles.selected]}>Group Admin</Text>
+                        <Switch
+                          value={editAdminType}
+                          onValueChange={setEditAdminType}
+                          thumbColor={editAdminType ? '#007bff' : '#f4f3f4'}
+                          trackColor={{ false: '#ccc', true: '#a3d2ff' }}
+                        />
+                        <Text style={[styles.label, editAdminType && styles.selected]}>Root Admin</Text>
+                      </View>
+                    )}
                     <TouchableOpacity
-                      style={styles.smallButton}
-                      onPress={() => handleEditUser(item)}
+                      style={[styles.button, { marginTop: 10 }]}
+                      onPress={handleUpdateUser}
                     >
-                      <Text style={styles.smallButtonText}>Update</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.smallButton, { backgroundColor: '#dc3545' }]}
-                      onPress={() => handleDeleteUser(item._id)}
-                    >
-                      <Text style={styles.smallButtonText}>Delete</Text>
+                      <Text style={styles.buttonText}>Save Changes</Text>
                     </TouchableOpacity>
                   </View>
-
-                  {editingUserId === item._id && (
-                    <View style={styles.editContainer}>
-                      <TextInput
-                        value={editName}
-                        onChangeText={setEditName}
-                        placeholder="Edit name"
-                        style={styles.input}
-                      />
-                      <View style={styles.toggleContainer}>
-                        <Text style={[styles.label, !editIsAdmin && styles.selected]}>User</Text>
-                        <Switch
-                          value={editIsAdmin}
-                          onValueChange={setEditIsAdmin}
-                          thumbColor={editIsAdmin ? '#1e90ff' : '#f4f3f4'}
-                          trackColor={{ false: '#767577', true: '#81b0ff' }}
-                        />
-                        <Text style={[styles.label, editIsAdmin && styles.selected]}>Admin</Text>
-                      </View>
-                      {editIsAdmin &&
-                        <View style={styles.toggleContainer}>
-                          <Text style={[styles.label, !editAdminType && styles.selected]}>Group Admin</Text>
-                          <Switch
-                            value={editAdminType}
-                            onValueChange={setEditAdminType}
-                            thumbColor={isAdmin ? '#1e90ff' : '#f4f3f4'}
-                            trackColor={{ false: '#767577', true: '#81b0ff' }}
-                          />
-                          <Text style={[styles.label, editAdminType && styles.selected]}>Root Admin</Text>
-                        </View>}
-                      <TouchableOpacity
-                        style={[styles.button, { marginTop: 10 }]}
-                        onPress={handleUpdateUser}
-                      >
-                        <Text style={styles.buttonText}>Save Changes</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </View>
-              )}
-              scrollEnabled={false}
-              style={{ marginTop: 20 }}
-            />
-          </View>
+                )}
+              </View>
+            ))}
+          </>
         ) : (
           <Text style={styles.noUsersText}>No users created</Text>
         )}
@@ -300,10 +302,30 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   form: {
+  backgroundColor: '#fff',
+  padding: 20,
+  borderRadius: 16,
+  elevation: 4,
+  shadowColor: '#000',
+  shadowOpacity: 0.05,
+  shadowOffset: { width: 0, height: 4 },
+  shadowRadius: 10,
+  marginBottom: 30,
+},
+  gradient: { flex: 1 },
+  container: { padding: 20, paddingBottom: 50 },
+  heading: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginVertical: 20,
+    textAlign: 'center',
+    color: '#222',
+  },
+  form: {
     backgroundColor: '#fff',
     padding: 20,
     borderRadius: 16,
-    elevation: 5,
+    elevation: 4,
     shadowColor: '#000',
     shadowOpacity: 0.08,
     shadowOffset: { width: 0, height: 4 },
@@ -311,11 +333,22 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
+    borderColor: '#ccc',
+    borderRadius: 12,
     padding: 12,
     marginBottom: 12,
     backgroundColor: '#f9f9f9',
+  },
+  pickerWrapper: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 12,
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  picker: {
+    height: 59,
+    width: '100%',
   },
   toggleContainer: {
     flexDirection: 'row',
@@ -324,7 +357,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    color: '#999',
+    color: '#777',
     marginHorizontal: 10,
   },
   selected: {
@@ -334,7 +367,7 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: '#007bff',
     paddingVertical: 14,
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: 'center',
     marginTop: 5,
   },
@@ -346,27 +379,146 @@ const styles = StyleSheet.create({
   userItem: {
     backgroundColor: '#fff',
     padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    elevation: 3,
+    borderRadius: 16,
+    marginBottom: 15,
+    elevation: 2,
     shadowColor: '#000',
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.06,
     shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
+    shadowRadius: 5,
   },
   userName: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '600',
-    color: '#222',
+    color: '#111',
   },
   userEmail: {
     fontSize: 14,
-    color: '#555',
+    color: '#444',
   },
   userRole: {
     fontSize: 13,
     marginTop: 5,
-    color: '#888',
+    color: '#666',
+    fontStyle: 'italic',
+  },
+  noUsersText: {
+    textAlign: 'center',
+    color: '#666',
+    marginTop: 30,
+    fontSize: 16,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+  },
+  smallButton: {
+    flex: 1,
+    marginRight: 10,
+    backgroundColor: '#28a745',
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  smallButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  editContainer: {
+    marginTop: 16,
+    backgroundColor: '#f0f0f0',
+    padding: 12,
+    borderRadius: 12,
+  },
+
+
+
+input: {
+  borderWidth: 1,
+  borderColor: '#ddd',
+  borderRadius: 10,
+  padding: 14,
+  marginBottom: 16,
+  backgroundColor: '#fafafa',
+  fontSize: 15,
+},
+
+toggleContainer: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginBottom: 16,
+},
+
+label: {
+  fontSize: 16,
+  color: '#555',
+  marginHorizontal: 10,
+},
+
+button: {
+  backgroundColor: '#007bff',
+  paddingVertical: 14,
+  borderRadius: 10,
+  alignItems: 'center',
+  marginTop: 10,
+  elevation: 2,
+},
+
+buttonRow: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  marginTop: 14,
+  gap: 10,
+},
+
+smallButton: {
+  flex: 1,
+  backgroundColor: '#28a745',
+  paddingVertical: 10,
+  borderRadius: 10,
+  alignItems: 'center',
+  elevation: 2,
+},
+
+editContainer: {
+  marginTop: 14,
+  backgroundColor: '#f5f7f8',
+  padding: 16,
+  borderRadius: 12,
+  elevation: 2,
+},
+
+userItem: {
+  backgroundColor: '#fff',
+  padding: 18,
+  borderRadius: 14,
+  marginBottom: 16,
+  elevation: 3,
+  shadowColor: '#000',
+  shadowOpacity: 0.06,
+  shadowOffset: { width: 0, height: 3 },
+  shadowRadius: 6,
+  },
+
+  userName: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#111',
+  },
+
+  userEmail: {
+    fontSize: 14,
+    color: '#555',
+    marginTop: 2,
+  },
+
+  userRole: {
+    fontSize: 13,
+    marginTop: 4,
+    color: '#777',
     fontStyle: 'italic',
   },
   noUsersText: {
@@ -398,4 +550,26 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 10,
   },
+
+  usersBox: {
+  backgroundColor: '#f9fbfd',
+  padding: 18,
+  borderRadius: 16,
+  shadowColor: '#000',
+  shadowOpacity: 0.03,
+  shadowOffset: { width: 0, height: 2 },
+  shadowRadius: 6,
+  elevation: 2,
+  marginBottom: 30,
+},
+
+sectionTitle: {
+  fontSize: 22,
+  fontWeight: 'bold',
+  marginBottom: 16,
+  textAlign: 'center',
+  color: '#333',
+},
+
+
 });

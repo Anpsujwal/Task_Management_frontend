@@ -14,6 +14,9 @@ export default function WorkerTaskReport() {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [filterByDate, setFilterByDate] = useState(false);
   const [filteredTasksByDate, setFilteredTasksByDate] = useState([]);
+  const [filterByDate, setFilterByDate] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(null); 
+  const [filteredTasksByDate, setFilteredTasksByDate] = useState([]);
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -88,15 +91,18 @@ export default function WorkerTaskReport() {
       <Text style={styles.title}>Task Summary</Text>
 
       {!filterByDate ? (
-        <Button title="Filter Tasks By Date" onPress={() => setFilterByDate(true)} />
-      ) : (
-        <FilterByDate
-          tasks={tasks}
-          setFilteredTasks={setFilteredTasksByDate}
-          setFilterByDate={setFilterByDate}
-        />
-      )
-      }
+          <TouchableOpacity style={styles.filterButton} onPress={() => setFilterByDate(true)}>
+            <Text style={styles.filterButtonText}>Filter Tasks By Date</Text>
+          </TouchableOpacity>
+        ) : (
+          <FilterByDate
+            tasks={tasks}
+            setFilteredTasks={setFilteredTasksByDate}
+            setFilterByDate={setFilterByDate}
+          />
+        )}
+
+
       <View style={styles.cardRow}>
         {categories.map(cat => (
           <TouchableOpacity
@@ -272,5 +278,26 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#007bff",
   },
+  filterButton: {
+    backgroundColor: "#007bff",
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+    alignSelf: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  filterButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+
 
 });

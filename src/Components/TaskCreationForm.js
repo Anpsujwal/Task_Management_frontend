@@ -50,7 +50,6 @@ export default function TaskCreationForm({ users, group, fetchAllTasks, setCreat
 
       console.log(payload);
       await api.post('/api/tasks', payload);
-      Alert.alert('Success', 'Task created successfully');
       fetchAllTasks();
       setNewTaskTitle('');
       setComment('');
@@ -61,7 +60,7 @@ export default function TaskCreationForm({ users, group, fetchAllTasks, setCreat
       setAssignmentType(false);
       setWorkersNeeded(1);
       setCreateNewTask(false);
-
+      Alert.alert('Task is created successfully!')
 
 
     } catch (err) {

@@ -7,14 +7,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 import api from '../api/api';
 import MultiSelect from 'react-native-multiple-select';
 import GoBackToDashboard from '../Components/GoToDashboard';
+import { LogBox } from 'react-native';
 
 export default function GroupManagementScreen() {
   const [groupName, setGroupName] = useState('');
-  const [users, setUsers] = useState([]); // selected userIds for new group
+  const [users, setUsers] = useState([]);
   const [updatedUsers, setUpdatedUsers] = useState([]);
   const [groups, setGroups] = useState([]);
-  const [allUsers, setAllUsers] = useState([]); // dropdown list
-  const [allUsersMap, setAllUsersMap] = useState({}); // _id -> name
+  const [allUsers, setAllUsers] = useState([]);
+  const [allUsersMap, setAllUsersMap] = useState({});
   const [expandedGroupId, setExpandedGroupId] = useState(null);
   const [editModeGroupId, setEditModeGroupId] = useState(null);
   const [editedGroupName, setEditedGroupName] = useState('');
@@ -24,7 +25,6 @@ export default function GroupManagementScreen() {
       const res = await api.get('/api/groups');
       setGroups(res.data);
     } catch (err) {
-      console.error('Error fetching groups:', err);
       Alert.alert('Error', 'Unable to fetch groups');
     }
   };
@@ -42,7 +42,6 @@ export default function GroupManagementScreen() {
       setAllUsers(mapped);
       setAllUsersMap(map);
     } catch (err) {
-      console.error('Error fetching users:', err);
       Alert.alert('Error', 'Unable to fetch users');
     }
   };
@@ -53,26 +52,36 @@ export default function GroupManagementScreen() {
       return;
     }
     try {
-      console.log('Creating group with:', { groupName, users });
       await api.post('/api/groups', { name: groupName, users });
       setGroupName('');
       setUsers([]);
       fetchGroups();
       Alert.alert('Success', 'Group created');
     } catch (err) {
-      console.error(err);
       Alert.alert('Error', err.response?.data?.msg || 'Failed to create group');
     }
   };
 
-  const updateGroupUsers = async ( groupId) => {
+  const updateGroupUsers = async (groupId) => {
     try {
-      await api.put(`/api/groups/${groupId}/add-users`, {name: editedGroupName, users: updatedUsers });
+      await api.put(`/api/groups/${groupId}/add-users`, {
+        name: editedGroupName,
+        users: updatedUsers
+      });
       fetchGroups();
       Alert.alert('Success', 'Group updated');
     } catch (err) {
-      console.error(err);
       Alert.alert('Error', err.response?.data?.msg || 'Failed to update group');
+    }
+  };
+
+  const deleteGroup = async (groupId) => {
+    try {
+      await api.delete(`/api/groups/${groupId}`);
+      fetchGroups();
+      Alert.alert('Success', 'Group deleted');
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.msg || 'Failed to delete group');
     }
   };
 
@@ -81,27 +90,20 @@ export default function GroupManagementScreen() {
   };
 
   useEffect(() => {
+  LogBox.ignoreLogs([
+    'VirtualizedLists should never be nested', // Ignore this warning
+  ]);
+}, []);
+
+  useEffect(() => {
     fetchGroups();
     fetchAllUsers();
-    setExpandedGroupId(null);
   }, []);
 
-  const deleteGroup=async (groupId) => {
-    try {
-      await api.delete(`/api/groups/${groupId}`);
-      fetchGroups();
-      Alert.alert('Success', 'Group deleted');
-    } catch (err) {
-      console.error(err);
-      Alert.alert('Error', err.response?.data?.msg || 'Failed to delete group');
-    }
-  }
-
   return (
-    <LinearGradient colors={['#8e9eab', '#eef2f3']} style={styles.gradient}>
-      
+    <LinearGradient colors={['#e9fefeff', '#f9f9f9ff']} style={styles.gradient}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
-        <GoBackToDashboard></GoBackToDashboard>
+        <GoBackToDashboard />
         <ScrollView contentContainerStyle={styles.scroll}>
           <View style={styles.card}>
             <Text style={styles.heading}>Group Management</Text>
@@ -118,20 +120,25 @@ export default function GroupManagementScreen() {
               uniqueKey="id"
               onSelectedItemsChange={setUsers}
               selectedItems={users}
-              selectText="Add Users to Group"
+              selectText="➕ Add Users to Group"
               searchInputPlaceholderText="Search Users..."
-              tagRemoveIconColor="#ccc"
-              tagBorderColor="#ccc"
-              tagTextColor="#333"
-              selectedItemTextColor="#0077cc"
-              selectedItemIconColor="#0077cc"
-              itemTextColor="#000"
-              displayKey="name"
-              searchInputStyle={{ color: '#333' }}
+              tagTextColor="#0077cc"
+              tagRemoveIconColor="#0077cc"
+              tagBorderColor="#0077cc"
+              selectedItemTextColor="#fff"
+              selectedItemIconColor="#fff"
               submitButtonColor="#0077cc"
+              itemTextColor="#333"
+              displayKey="name"
+              searchInputStyle={{ color: '#333', fontSize: 16 }}
               submitButtonText="Done"
+              styleDropdownMenuSubsection={styles.dropdownSubsection}
               styleMainWrapper={styles.multiSelectWrapper}
+              styleInputGroup={styles.inputGroup}
+              styleSelectorContainer={styles.selectorContainer}
+              styleItemsContainer={styles.itemsContainer}
             />
+
 
             <TouchableOpacity style={styles.button} onPress={handleCreateGroup}>
               <Text style={styles.buttonText}>Create Group</Text>
@@ -192,6 +199,19 @@ export default function GroupManagementScreen() {
                           tagRemoveIconColor="#ccc"
                           tagBorderColor="#ccc"
                           tagTextColor="#333"
+                          styleTag={{
+                            backgroundColor: '#0077cc',
+                            borderRadius: 16,
+                            paddingVertical: 6,
+                            paddingHorizontal: 10,
+                          }}
+
+                          styleTagText={{
+                            color: '#fff',
+                            fontWeight: 'bold',
+                            fontSize: 14,
+                          }}
+
                           selectedItemTextColor="#0077cc"
                           selectedItemIconColor="#0077cc"
                           itemTextColor="#000"
@@ -204,19 +224,19 @@ export default function GroupManagementScreen() {
                       )}
 
                       {isEditing ? (
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
+                        <View style={styles.actionButtons}>
                           <TouchableOpacity
-                            style={[styles.button, { flex: 1, backgroundColor: '#28a745' }]}
+                            style={[styles.button, { backgroundColor: '#28a745' }]}
                             onPress={() => {
-                              updateGroupUsers( item._id);
+                              updateGroupUsers(item._id);
                               setEditModeGroupId(null);
                               setExpandedGroupId(null);
                             }}
                           >
-                            <Text style={styles.buttonText}>Save Changes</Text>
+                            <Text style={styles.buttonText}>Save</Text>
                           </TouchableOpacity>
                           <TouchableOpacity
-                            style={[styles.button, { flex: 1, backgroundColor: '#ccc' }]}
+                            style={[styles.button, { backgroundColor: '#ccc' }]}
                             onPress={() => {
                               setEditModeGroupId(null);
                               setEditedGroupName('');
@@ -227,25 +247,24 @@ export default function GroupManagementScreen() {
                           </TouchableOpacity>
                         </View>
                       ) : (
-                        <View>
-                        <TouchableOpacity
-                          style={[styles.button, { marginTop: 10 }]}
-                          onPress={() => {
-                            setEditModeGroupId(item._id);
-                            setEditedGroupName(item.name);
-                            setUpdatedUsers(item.users || []);
-                          }}
-                        >
-                          <Text style={styles.buttonText}>Update Group</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={[styles.button, { marginTop: 10 }]}
-                          onPress={() => {deleteGroup(item._id);
-                          }}
-                        >
-                          <Text style={styles.buttonText}>Delete Group</Text>
-                        </TouchableOpacity>
-                       </View>
+                        <View style={styles.actionButtons}>
+                          <TouchableOpacity
+                            style={styles.button}
+                            onPress={() => {
+                              setEditModeGroupId(item._id);
+                              setEditedGroupName(item.name);
+                              setUpdatedUsers(item.users || []);
+                            }}
+                          >
+                            <Text style={styles.buttonText}>Update</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[styles.button, { backgroundColor: '#e74c3c' }]}
+                            onPress={() => deleteGroup(item._id)}
+                          >
+                            <Text style={styles.buttonText}>Delete</Text>
+                          </TouchableOpacity>
+                        </View>
                       )}
                     </>
                   )}
@@ -273,29 +292,29 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: '#fff',
     padding: 20,
     borderRadius: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 10,
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 6,
+    elevation: 6,
   },
   heading: {
     fontSize: 24,
     fontWeight: 'bold',
+    color: '#0077cc',
     marginBottom: 20,
     textAlign: 'center',
-    color: '#333',
   },
   input: {
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 10,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    backgroundColor: '#f8f8f8',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: '#f9f9f9',
     fontSize: 16,
     marginBottom: 15,
   },
@@ -304,42 +323,82 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: '#0077cc',
-    paddingVertical: 14,
+    paddingVertical: 12,
     borderRadius: 10,
     alignItems: 'center',
     marginTop: 10,
+    flex: 1,
   },
+  multiSelectWrapper: {
+  marginVertical: 15,
+  borderRadius: 12,
+  borderWidth: 1.5,
+  borderColor: '#0077cc',
+  padding: 10,
+  backgroundColor: '#f0f8ff',
+  elevation: 3,
+},
+
+  dropdownSubsection: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderColor: '#0077cc',
+    backgroundColor: '#e6f0fa',
+    borderRadius: 8,
+  },
+
+  inputGroup: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    backgroundColor: '#fff',
+  },
+
+  selectorContainer: {
+    marginBottom: 8,
+  },
+
+  itemsContainer: {
+    backgroundColor: '#ffffff',
+    borderRadius: 10,
+    maxHeight: 250,
+  },
+
   buttonText: {
     color: '#fff',
     fontWeight: '600',
     fontSize: 16,
   },
   groupItem: {
-    backgroundColor: '#fff',
+    backgroundColor: '#fdfdfd',
     padding: 15,
-    borderRadius: 10,
-    marginBottom: 12,
+    borderRadius: 12,
+    marginBottom: 15,
     shadowColor: '#000',
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.08,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 6,
-    elevation: 5,
+    elevation: 3,
   },
   groupText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#0077cc',
+    color: '#333',
   },
   userLabel: {
-    fontWeight: 'bold',
     marginTop: 10,
-    marginBottom: 5,
-    color: '#333',
+    fontWeight: 'bold',
+    color: '#444',
   },
   userText: {
     fontSize: 14,
     color: '#555',
-    paddingLeft: 8,
     paddingVertical: 2,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginTop: 10,
   },
 });

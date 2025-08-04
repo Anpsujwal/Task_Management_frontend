@@ -3,108 +3,103 @@ import {
   View, Text, TouchableOpacity, StyleSheet,
   SafeAreaView, ScrollView
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { AuthContext } from '../context/AuthContext';
 
 export default function UserDashboardScreen({ navigation }) {
   const { user, logout } = useContext(AuthContext);
 
   return (
-    <LinearGradient colors={['#0f2027', '#203a43', '#2c5364']} style={styles.gradient}>
-      <SafeAreaView style={styles.container}>
-        <ScrollView contentContainerStyle={styles.card}>
-          <Text style={styles.heading}>Welcome, {user?.name}</Text>
-          <Text style={styles.role}>Flat No.{user?.flatNo}</Text>
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.card}>
+        <Text style={styles.heading}>Welcome, {user?.name}</Text>
+        <Text style={styles.role}>Flat No. {user?.flatNo}</Text>
 
-            <View>
-              <TouchableOpacity
-                style={styles.button}
-                onPress={() => navigation.navigate('TaskReports')}
-              >
-                <Text style={styles.buttonText}>Tickets Report</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.button}
-                onPress={() => navigation.navigate('TicketManagement')}
-              >
-                <Text style={styles.buttonText}>Create Tickets</Text>
-              </TouchableOpacity>
-            </View>
-
-
-
+        <View style={styles.buttonContainer}>
           <TouchableOpacity
-            style={styles.logoutButton}
-            onPress={() => {
-              logout();
-              navigation.replace('UserTypeSelection');
-            }}
+            style={styles.button}
+            onPress={() => navigation.navigate('TaskReports')}
           >
-            <Text style={styles.logoutText}>Logout</Text>
+            <Text style={styles.buttonText}>Tickets Report</Text>
           </TouchableOpacity>
 
-        </ScrollView>
-      </SafeAreaView>
-    </LinearGradient>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => navigation.navigate('TicketManagement')}
+          >
+            <Text style={styles.buttonText}>Create Tickets</Text>
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={() => {
+            logout();
+            navigation.replace('UserTypeSelection');
+          }}
+        >
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  gradient: {
-    flex: 1,
-  },
   container: {
     flex: 1,
+    backgroundColor: '#f0f6ff', // Light blue background
     paddingHorizontal: 20,
   },
   card: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 25,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    padding: 30,
     borderRadius: 20,
     marginVertical: 50,
+    backgroundColor: '#ffffff',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 15,
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
   },
   heading: {
-    fontSize: 28,
-    color: '#fff',
+    fontSize: 30,
+    color: '#0a0a0a',
     fontWeight: 'bold',
-    marginBottom: 10,
     textAlign: 'center',
+    marginBottom: 10,
   },
   role: {
-    fontSize: 16,
-    color: '#ccc',
+    fontSize: 18,
+    color: '#444',
     textAlign: 'center',
+    marginBottom: 30,
+  },
+  buttonContainer: {
     marginBottom: 30,
   },
   button: {
     backgroundColor: '#1e90ff',
-    paddingVertical: 15,
-    borderRadius: 12,
+    paddingVertical: 16,
+    borderRadius: 14,
     alignItems: 'center',
-    marginVertical: 8,
+    marginVertical: 10,
   },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
   },
   logoutButton: {
-    marginTop: 30,
-    paddingVertical: 15,
-    borderRadius: 12,
-    borderColor: '#f44',
-    borderWidth: 1.5,
+    paddingVertical: 16,
+    borderRadius: 14,
     alignItems: 'center',
+    borderColor: '#1e90ff',
+    borderWidth: 1.5,
   },
   logoutText: {
-    color: '#f44',
+    color: '#1e90ff',
     fontSize: 16,
     fontWeight: '600',
   },
