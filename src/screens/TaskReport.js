@@ -5,7 +5,7 @@ import { Video, Audio } from "expo-av";
 import GoBackToDashboard from "../Components/GoToDashboard";
 import { AuthContext } from "../context/AuthContext";
 import FilterByDate from "../Components/FilterTaskByDate";
-
+import { LogBox } from 'react-native';
 export default function TaskDashboard({ navigation }) {
   const { user, type } = useContext(AuthContext);
   const [tasks, setTasks] = useState([]);
@@ -39,13 +39,20 @@ export default function TaskDashboard({ navigation }) {
     fetchTasks();
   }, []);
 
+  useEffect(() => {
+    LogBox.ignoreLogs([
+      'VirtualizedLists should never be nested', // Ignore this warning
+    ]);
+  }, []);
+  
+
   const now = new Date();
 
   const categorizedCounts = {
-    pending:( !filterByDate?tasks:filteredTasksByDate)?.filter(t => t.status?.text === "pending").length,
-    in_progress: ( !filterByDate?tasks:filteredTasksByDate)?.filter(t => t.status?.text === "in_progress").length,
-    completed: ( !filterByDate?tasks:filteredTasksByDate)?.filter(t => t.status?.text === "completed").length,
-    overdue: ( !filterByDate?tasks:filteredTasksByDate)?.filter(t => {
+    pending: (!filterByDate ? tasks : filteredTasksByDate)?.filter(t => t.status?.text === "pending").length,
+    in_progress: (!filterByDate ? tasks : filteredTasksByDate)?.filter(t => t.status?.text === "in_progress").length,
+    completed: (!filterByDate ? tasks : filteredTasksByDate)?.filter(t => t.status?.text === "completed").length,
+    overdue: (!filterByDate ? tasks : filteredTasksByDate)?.filter(t => {
       return (
         (t.status?.text !== "completed") &&
         t.dueDate &&
@@ -54,7 +61,7 @@ export default function TaskDashboard({ navigation }) {
     }).length,
   };
 
-  const filteredTasks =( !filterByDate?tasks:filteredTasksByDate)?.filter(task => {
+  const filteredTasks = (!filterByDate ? tasks : filteredTasksByDate)?.filter(task => {
     if (!selectedCategory) return false;
 
     if (selectedCategory === "overdue") {
@@ -110,11 +117,12 @@ export default function TaskDashboard({ navigation }) {
       {type === "tenant" ? <Text style={styles.title}>Ticket Summary</Text> : <Text style={styles.title}>Task Summary</Text>}
 
 
-
-      {!filterByDate && <Button title="Filter Tasks By Date" onPress={() => { setFilterByDate(true); setCreateNewTask(false) }}></Button>}
-
-
-      {filterByDate && <FilterByDate tasks={tasks} setFilteredTasks={setFilteredTasksByDate} setFilterByDate={setFilterByDate} />}
+      {type === "staff" &&
+      (!filterByDate ? <TouchableOpacity style={styles.filterButton} onPress={() => setFilterByDate(true)}>
+                          <Text style={styles.filterButtonText}>Filter Tasks By Date</Text>
+                        </TouchableOpacity>
+      :<FilterByDate tasks={tasks} setFilteredTasks={setFilteredTasksByDate} setFilterByDate={setFilterByDate} />
+      )}
 
       <View style={styles.cardRow}>
         {categories.map(cat => (
@@ -129,8 +137,11 @@ export default function TaskDashboard({ navigation }) {
         ))}
       </View>
 
-      {user?.isAdmin && <Button title="Download Summary of this month" onPress={() => { handleDownload() }}></Button>}
-
+      {user?.isAdmin && <TouchableOpacity style={styles.downloadButton} onPress={handleDownload}>
+                          <Text style={styles.downloadButtonText}>Download Summary of This Month</Text>
+                        </TouchableOpacity>
+      }
+    <View style={styles.usersBox}>
       {selectedCategory && (
         <>
           <Text style={styles.subTitle}>{type === "tenant" ? "Tickets" : "Tasks"} {categories.find(c => c.key === selectedCategory)?.label}</Text>
@@ -188,113 +199,147 @@ export default function TaskDashboard({ navigation }) {
           />
         </>
       )}
+    </View>
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
+
+  const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: "#f0f2f5",
-    minHeight: "100vh",
+    backgroundColor: "#F4F6F7",
   },
   centered: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    height: "100vh",
   },
   title: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: "bold",
     marginBottom: 20,
     textAlign: "center",
-    color: "#333",
+    color: "#2D3436",
   },
   subTitle: {
     fontSize: 22,
     fontWeight: "600",
-    marginTop: 20,
-    marginBottom: 10,
+    marginVertical: 20,
     textAlign: "center",
-    color: "#555",
+    color: "#34495E",
   },
   cardRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     flexWrap: "wrap",
-    gap: 16,
+    justifyContent: "space-between",
+    gap: 12,
+    marginBottom: 20,
+  },
+  usersBox: {
+    backgroundColor: '#f9fbfd',
+    padding: 18,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.03,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 6,
+    elevation: 2,
+    marginBottom: 30,
   },
   card: {
-    flex: 1,
+    flexGrow: 1,
     padding: 20,
     margin: 5,
-    borderRadius: 12,
+    borderRadius: 16,
     alignItems: "center",
+    minWidth: 140,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
     elevation: 3,
-    minWidth: 140,
   },
   cardTitle: {
     fontSize: 18,
     fontWeight: "600",
     color: "#fff",
-    marginBottom: 8,
+    marginBottom: 6,
   },
   cardCount: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "bold",
     color: "#fff",
   },
+  filterButton: {
+    backgroundColor: "#3498DB",
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginBottom: 16,
+    alignItems: "center",
+  },
+  filterButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  downloadButton: {
+    backgroundColor: "#2ecc71",
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginVertical: 16,
+    alignItems: "center",
+  },
+  downloadButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
   taskCard: {
     backgroundColor: "#fff",
-    padding: 16,
-    marginVertical: 8,
-    borderRadius: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  taskTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 4,
-  },
-  status: {
-    fontWeight: "600",
-    color: "#007bff",
-  },
-  container: {
-    flex: 1,
     padding: 20,
-    backgroundColor: "#f0f2f5",
-  },
-  flatListContent: {
-    paddingBottom: 150, // extra space to avoid clipping at the bottom
-  },
-  taskCard: {
-    backgroundColor: "#fff",
-    padding: 16,
-    marginVertical: 8,
-    borderRadius: 10,
+    marginVertical: 10,
+    borderRadius: 16,
     shadowColor: "#000",
     shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 8,
+    elevation: 3,
   },
   taskTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 4,
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 8,
+    color: "#2c3e50",
   },
   status: {
     fontWeight: "600",
     color: "#007bff",
   },
-
+  mediaImage: {
+    width: "100%",
+    height: 200,
+    borderRadius: 12,
+    marginTop: 10,
+  },
+  mediaVideo: {
+    width: "100%",
+    height: 300,
+    borderRadius: 12,
+    marginTop: 10,
+  },
+  audioButton: {
+    backgroundColor: "#6C5CE7",
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginTop: 10,
+    alignItems: "center",
+  },
+  audioButtonText: {
+    color: "#fff",
+    fontWeight: "600",
+  },
 });
+
+

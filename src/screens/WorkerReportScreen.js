@@ -1,19 +1,24 @@
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image, ScrollView,Button} from "react-native";
-import  { useEffect, useState,useContext } from "react";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image, ScrollView, Button ,LogBox} from "react-native";
+import { useEffect, useState, useContext } from "react";
 import api from "../api/api";
-import {Video, Audio } from "expo-av";
+import { Video, Audio } from "expo-av";
 import GoBackToDashboard from "../Components/GoToDashboard";
 import { AuthContext } from "../context/AuthContext";
-
+import FilterByDate from "../Components/FilterTaskByDate";
 
 
 export default function WorkerTaskReport() {
-  const {user}=useContext(AuthContext);
+  const { user } = useContext(AuthContext);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState(null); 
-
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [filterByDate, setFilterByDate] = useState(false);
+  const [filteredTasksByDate, setFilteredTasksByDate] = useState([]);
+  
   useEffect(() => {
+    LogBox.ignoreLogs([
+      'VirtualizedLists should never be nested', // Ignore this warning
+    ]);
     const fetchTasks = async () => {
       try {
         const res = await api.get(`/api/tasks/alltasks/user/${user._id}`);
@@ -31,10 +36,10 @@ export default function WorkerTaskReport() {
   const now = new Date();
 
   const categorizedCounts = {
-    pending: tasks.filter(t => t.status?.text === "pending").length,
-    in_progress: tasks.filter(t => t.status?.text === "in_progress").length,
-    completed: tasks.filter(t => t.status?.text === "completed").length,
-    overdue: tasks.filter(t => {
+    pending: (!filterByDate ? tasks : filteredTasksByDate).filter(t => t.status?.text === "pending").length,
+    in_progress:(!filterByDate ? tasks : filteredTasksByDate).filter(t => t.status?.text === "in_progress").length,
+    completed: (!filterByDate ? tasks : filteredTasksByDate).filter(t => t.status?.text === "completed").length,
+    overdue: (!filterByDate ? tasks : filteredTasksByDate).filter(t => {
       return (
         (t.status?.text !== "completed") &&
         t.completeBy?.dueDate &&
@@ -43,7 +48,7 @@ export default function WorkerTaskReport() {
     }).length,
   };
 
-  const filteredTasks = tasks.filter(task => {
+  const filteredTasks =(!filterByDate ? tasks : filteredTasksByDate).filter(task => {
     if (!selectedCategory) return false;
 
     if (selectedCategory === "overdue") {
@@ -77,13 +82,26 @@ export default function WorkerTaskReport() {
       { uri: `${api.defaults.baseURL}api/tasks/${id}/audio` },
       { shouldPlay: true }
     );
-  
+
   }
 
   return (
-    <View style={styles.container}>
-      <GoBackToDashboard/>
+    <ScrollView style={styles.container}>
+      <GoBackToDashboard />
       <Text style={styles.title}>Task Summary</Text>
+
+      {!filterByDate ? (
+          <TouchableOpacity style={styles.filterButton} onPress={() => setFilterByDate(true)}>
+            <Text style={styles.filterButtonText}>Filter Tasks By Date</Text>
+          </TouchableOpacity>
+        ) : (
+          <FilterByDate
+            tasks={tasks}
+            setFilteredTasks={setFilteredTasksByDate}
+            setFilterByDate={setFilterByDate}
+          />
+        )}
+
 
       <View style={styles.cardRow}>
         {categories.map(cat => (
@@ -108,7 +126,7 @@ export default function WorkerTaskReport() {
               <View style={styles.taskCard}>
                 <Text style={styles.taskTitle}>{item.title}</Text>
                 <Text>Status : <Text style={styles.status}>{item.status?.text}</Text></Text>
-                {(selectedCategory==="pending" || selectedCategory==="overdue") && <Text>
+                {(selectedCategory === "pending" || selectedCategory === "overdue") && <Text>
                   Assigned To : {" "}
                   {item.assignedWorkers?.length > 0
                     ? `${item.assignedWorkers.length} worker(s)`
@@ -124,38 +142,41 @@ export default function WorkerTaskReport() {
                     : "N/A"}
                 </Text>
                 <Text>Created At: {item.createdDate}</Text>
-                {item.status?.image?.hasImage &&
-                <Image
-                  source={{ uri: `${api.defaults.baseURL}api/tasks/${item._id}/image` }}
-                  style={{ width: 200, height: 200 }}
-                />
-            }
+                {item.status.image?.hasImage &&
                 
-                { item.status?.video?.hasVideo &&
-                <Video
-                  source={{ uri: `${api.defaults.baseURL}api/tasks/${item._id}/video` }}
-                  style={{ width: 600, height: 600 }}
-                  useNativeControls
-                  resizeMode="contain"
-                  isLooping
-                />
-            }
+                  <Image
+                    source={{ uri: `${api.defaults.baseURL}api/tasks/${item._id}/image` }}
+                    style={{ width: 200, height: 200 }}
+                  />
+                  
+                }
+
+                {item.status?.video?.hasVideo &&
+                  <Video
+                    source={{ uri: `${api.defaults.baseURL}api/tasks/${item._id}/video` }}
+                    style={{ width: 600, height: 600 }}
+                    useNativeControls
+                    resizeMode="contain"
+                    isLooping
+                  />
+                }
                 {item.status?.audio?.hasAudio &&
-                <Button title="Play Audio" onPress={()=>{playAudio(item._id)}} />
-            }
+                  <Button title="Play Audio" onPress={() => { playAudio(item._id) }} />
+                }
               </View>
-                
+
             )}
-            
+
           />
         </>
       )}
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     padding: 20,
     backgroundColor: "#f0f2f5",
     minHeight: "100vh",
@@ -257,5 +278,26 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#007bff",
   },
+  filterButton: {
+    backgroundColor: "#007bff",
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+    alignSelf: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  filterButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+
 
 });

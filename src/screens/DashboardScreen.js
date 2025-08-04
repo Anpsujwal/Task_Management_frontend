@@ -1,169 +1,124 @@
+
 import React, { useContext } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  SafeAreaView, ScrollView
+  SafeAreaView
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { AuthContext } from '../context/AuthContext';
 
 export default function DashboardScreen({ navigation }) {
   const { user, logout } = useContext(AuthContext);
 
   return (
-    <LinearGradient colors={['#0f2027', '#203a43', '#2c5364']} style={styles.gradient}>
-      <SafeAreaView style={styles.container}>
-        <ScrollView contentContainerStyle={styles.card}>
-          <Text style={styles.heading}>Welcome, {user?.name}</Text>
-          <Text style={styles.role}>Role: {user?.isAdmin ? `${user.adminType} Admin` : 'worker'}</Text>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.centeredCard}>
+        <Text style={styles.heading}>Welcome, {user?.name}</Text>
+        <Text style={styles.role}>Role: {user?.isAdmin ? `${user.adminType} Admin` : 'Worker'}</Text>
 
-          {user?.isAdmin && (
-            <>
-              <TouchableOpacity
-                style={styles.button}
-                onPress={() => navigation.navigate('TaskReports')}
-              >
-                <Text style={styles.buttonText}>Task Report</Text>
-              </TouchableOpacity>
+        {user?.isAdmin && (
+          <>
+            <CustomButton title="Task Report" onPress={() => navigation.navigate('TaskReports')} />
+            <CustomButton title="User Management" onPress={() => navigation.navigate('UserManagement')} />
 
-              <TouchableOpacity
-                style={styles.button}
-                onPress={() => navigation.navigate('UserManagement')}
-              >
-                <Text style={styles.buttonText}>User Management</Text>
-              </TouchableOpacity>
+            {user.adminType === 'root' &&
+              <CustomButton title="Group Management" onPress={() => navigation.navigate('GroupManagement')} />
+            }
 
-              {user.adminType === 'root' &&
-                <TouchableOpacity
-                  style={styles.button}
-                  onPress={() => navigation.navigate('GroupManagement')}
-                >
-                  <Text style={styles.buttonText}>Group Management</Text>
-                </TouchableOpacity>
-              }
-              {user.adminType === 'group' &&
+            {user.adminType === 'group' && (
               <>
-                <TouchableOpacity
-                  style={styles.button}
-                  onPress={() => navigation.navigate('TaskManagement')}
-                >
-                  <Text style={styles.buttonText}>Task Management</Text>
-                </TouchableOpacity>
+                <CustomButton title="Task Management" onPress={() => navigation.navigate('TaskManagement')} />
+                <CustomButton title="Tickets Generated" onPress={() => navigation.navigate('AdminTicketManagement')} />
+              </>
+            )}
+          </>
+        )}
 
-                <TouchableOpacity
-                  style={styles.button}
-                  onPress={() => navigation.navigate('AdminTicketManagement')}
-                >
-                  <Text style={styles.buttonText}>Tickets Generated</Text>
-                </TouchableOpacity>
-                </>
-           }     
-            </>
-            
-          )}
+        {!user?.isAdmin && (
+          <>
+            <CustomButton title="Task Report" onPress={() => navigation.navigate('WorkerTaskReport')} />
+            <CustomButton title="Assigned Tasks" onPress={() => navigation.navigate('WorkerTaskPanel')} />
+            <CustomButton title="Ticket Management" onPress={() => navigation.navigate('WorkerTicketManagement')} />
+          </>
+        )}
 
-          {!user?.isAdmin && (
-            <View>
-              <TouchableOpacity
-                style={styles.button}
-                onPress={() => navigation.navigate('WorkerTaskReport')}
-              >
-                <Text style={styles.buttonText}>Task Report</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.button}
-                onPress={() => navigation.navigate('WorkerTaskPanel')}
-              >
-                <Text style={styles.buttonText}>Assigned Tasks</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.button}
-                onPress={() => navigation.navigate('WorkerTicketManagement')}
-              >
-                <Text style={styles.buttonText}>Ticket Management</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+        <CustomButton title="Ticket Report" onPress={() => navigation.navigate('TicketReportScreen')} />
 
-          <TouchableOpacity
-                style={styles.button}
-                onPress={() => navigation.navigate('TicketReportScreen')}
-              >
-                <Text style={styles.buttonText}>Ticket Report</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.logoutButton}
-            onPress={() => {
-              logout();
-              navigation.replace('UserTypeSelection');
-            }}
-          >
-            <Text style={styles.logoutText}>Logout</Text>
-          </TouchableOpacity>
-
-        </ScrollView>
-      </SafeAreaView>
-    </LinearGradient>
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={() => {
+            logout();
+            navigation.replace('UserTypeSelection');
+          }}
+        >
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
   );
 }
 
+const CustomButton = ({ title, onPress }) => (
+  <TouchableOpacity style={styles.button} onPress={onPress}>
+    <Text style={styles.buttonText}>{title}</Text>
+  </TouchableOpacity>
+);
+
 const styles = StyleSheet.create({
-  gradient: {
-    flex: 1,
-  },
   container: {
     flex: 1,
-    paddingHorizontal: 20,
+    backgroundColor: '#F4F6F7',
+    padding: 24,
   },
-  card: {
-    flexGrow: 1,
+  centeredCard: {
+    flex: 1,
     justifyContent: 'center',
-    padding: 25,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 20,
-    marginVertical: 50,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 15,
+    alignItems: 'center',
   },
   heading: {
-    fontSize: 28,
-    color: '#fff',
+    fontSize: 32, // increased
+    color: '#2D3436',
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: 8,
     textAlign: 'center',
   },
   role: {
-    fontSize: 16,
-    color: '#ccc',
+    fontSize: 18, // increased
+    color: '#7f8c8d',
+    marginBottom: 32,
     textAlign: 'center',
-    marginBottom: 30,
   },
   button: {
-    backgroundColor: '#1e90ff',
-    paddingVertical: 15,
-    borderRadius: 12,
+    width: 280, // increased
+    backgroundColor: '#3498DB',
+    paddingVertical: 18, // increased
+    borderRadius: 16, // more rounded
     alignItems: 'center',
-    marginVertical: 8,
+    marginVertical: 10, // more spacing
+    shadowColor: '#2980B9',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
   },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 18, // increased
+    fontWeight: '700',
   },
   logoutButton: {
-    marginTop: 30,
-    paddingVertical: 15,
-    borderRadius: 12,
-    borderColor: '#f44',
-    borderWidth: 1.5,
+    marginTop: 28,
+    paddingVertical: 16, // increased
+    borderRadius: 16,
+    borderColor: '#E74C3C',
+    borderWidth: 1.8,
     alignItems: 'center',
+    width: 280,
   },
   logoutText: {
-    color: '#f44',
-    fontSize: 16,
-    fontWeight: '600',
+    color: '#E74C3C',
+    fontSize: 18, // increased
+    fontWeight: '700',
   },
 });
+
+
