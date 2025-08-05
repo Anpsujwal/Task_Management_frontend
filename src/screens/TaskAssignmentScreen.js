@@ -108,7 +108,7 @@ export default function TaskManagementScreen() {
           />
         )}
 
-        {filteredTasks.length > 0  (
+        {filteredTasks.length > 0 &&  (
           <View style={{ marginTop: 30 }}>
             <Text style={styles.subHeading}>Filtered Tasks</Text>
             <FlatList
