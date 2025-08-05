@@ -4,6 +4,7 @@ import ViewShot from "react-native-view-shot";
 import RNPrint from "react-native-print";
 import { useRef } from "react";
 import * as Print from 'expo-print';
+import ReusableBarChart from "../Components/ReusableBarChart";
 
 export default function ReportSummaryDownload({ navigation, route }) {
     const { tasks } = route.params;

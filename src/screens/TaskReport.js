@@ -6,6 +6,8 @@ import GoBackToDashboard from "../Components/GoToDashboard";
 import { AuthContext } from "../context/AuthContext";
 import FilterByDate from "../Components/FilterTaskByDate";
 import { LogBox } from 'react-native';
+import ReusableBarChart from "../Components/ReusableBarChart";
+
 export default function TaskDashboard({ navigation }) {
   const { user, type } = useContext(AuthContext);
   const [tasks, setTasks] = useState([]);
@@ -136,6 +138,17 @@ export default function TaskDashboard({ navigation }) {
           </TouchableOpacity>
         ))}
       </View>
+      <ReusableBarChart
+        title="Task Summary Graph"
+        labels={["Pending", "In Progress", "Completed", "Overdue"]}
+        data={[
+          categorizedCounts.pending || 0,
+          categorizedCounts.in_progress || 0,
+          categorizedCounts.completed || 0,
+          categorizedCounts.overdue || 0,
+        ]}
+      />
+
 
       {user?.isAdmin && <TouchableOpacity style={styles.downloadButton} onPress={handleDownload}>
                           <Text style={styles.downloadButtonText}>Download Summary of This Month</Text>

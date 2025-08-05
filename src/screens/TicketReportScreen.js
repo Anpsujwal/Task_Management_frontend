@@ -16,6 +16,7 @@ import { Video, Audio } from "expo-av";
 import GoBackToDashboard from "../Components/GoToDashboard";
 import { AuthContext } from "../context/AuthContext";
 import FilterTicketsByDate from "../Components/FilterTicketsByDate";
+import ReusableBarChart from "../Components/ReusableBarChart";
 
 export default function TicketReportScreen({ navigation }) {
   const { user, type } = useContext(AuthContext);
@@ -145,6 +146,18 @@ export default function TicketReportScreen({ navigation }) {
           </TouchableOpacity>
         ))}
       </View>
+
+      <ReusableBarChart
+        title="Tickets Summary Graph"
+        labels={["Pending", "In Progress", "Completed", "Overdue"]}
+        data={[
+          categorizedCounts.pending || 0,
+          categorizedCounts.in_progress || 0,
+          categorizedCounts.completed || 0,
+          categorizedCounts.overdue || 0,
+        ]}
+      />
+
 
       {user?.isAdmin && (
         <TouchableOpacity style={styles.button} onPress={handleDownload}>
