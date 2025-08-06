@@ -19,7 +19,7 @@ export default function TaskManagementScreen() {
 
   const [allTasks, setAllTasks] = useState([]);
   const [users, setUsers] = useState([]);
-  const [group, setGroup] = useState([]);
+  const [groups, setGroups] = useState([]);
 
   const [createNewTask, setCreateNewTask] = useState(false);
   const [filterByDate, setFilterByDate] = useState(false);
@@ -38,8 +38,13 @@ export default function TaskManagementScreen() {
 
   const fetchGroup = async () => {
     try {
-      const res = await api.get(`/api/groups/${user.group}`);
-      setGroup(res.data);
+      if (user.adminType === "root") {
+        const res = await api.get(`/api/groups/`);
+        setGroups(res.data);
+      } else {
+        const res = await api.get(`/api/groups/${user.group}`);
+        setGroups([res.data]);
+      }
     } catch (err) {
       Alert.alert('Error', 'Failed to load groups');
     }
@@ -63,10 +68,10 @@ export default function TaskManagementScreen() {
   }, []);
 
   useEffect(() => {
-      LogBox.ignoreLogs([
-        'VirtualizedLists should never be nested', // Ignore this warning
-      ]);
-    }, []);
+    LogBox.ignoreLogs([
+      'VirtualizedLists should never be nested', // Ignore this warning
+    ]);
+  }, []);
   return (
     <LinearGradient colors={['#f9fcff', '#f1f5f9']} style={styles.gradient}>
       <GoBackToDashboard />
@@ -94,7 +99,7 @@ export default function TaskManagementScreen() {
         {createNewTask && (
           <TaskCreationForm
             users={users}
-            group={group}
+            groups={groups}
             fetchAllTasks={fetchAllTasks}
             setCreateNewTask={setCreateNewTask}
           />
@@ -108,7 +113,7 @@ export default function TaskManagementScreen() {
           />
         )}
 
-        {filteredTasks.length > 0 &&  (
+        {filteredTasks.length > 0 && (
           <View style={{ marginTop: 30 }}>
             <Text style={styles.subHeading}>Filtered Tasks</Text>
             <FlatList
@@ -134,7 +139,7 @@ export default function TaskManagementScreen() {
                       selectedTaskDetails={selectedTaskDetails}
                       setSelectedTaskDetails={setSelectedTaskDetails}
                       users={users}
-                      groups={group}
+                      groups={groups}
                       fetchTasks={fetchAllTasks}
                     />
                   )}
@@ -158,10 +163,15 @@ export default function TaskManagementScreen() {
                   >
                     <Text style={styles.taskTitle}>{task.title}</Text>
                     <Text style={styles.taskDetail}>Priority: {task.priority}</Text>
-                    <Text style={styles.taskDetail}>Schedule For: {task.scheduleFor}</Text>
-                    <Text style={styles.taskDetail}>
-                      Group: {group?.name || 'None'}
-                    </Text>
+                    <Text style={styles.taskDetail}>Scheduled For: {task.scheduleFor}</Text>
+                    {
+                      task.assignToEntireGroup &&
+                      <Text style={styles.taskDetail}>
+                        Group: {(task.groupTaskDetails?.group && Array.isArray(groups))
+                          ? (groups.find(g => g._id === task.groupTaskDetails.group)?.name || 'None')
+                          : 'None'}
+                      </Text>
+                    }
                     <Text style={styles.taskDetail}>
                       Workers: {task.assignToEntireGroup
                         ? 'Assigned to entire group'

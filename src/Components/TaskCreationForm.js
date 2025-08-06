@@ -4,11 +4,11 @@ import MultiSelect from 'react-native-multiple-select';
 import React, { useEffect, useState, useContext } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, Alert,Switch
+  StyleSheet, Alert, Switch
 } from 'react-native';
 import api from '../api/api';
 import { AuthContext } from '../context/AuthContext';
-export default function TaskCreationForm({ users, group, fetchAllTasks, setCreateNewTask }) {
+export default function TaskCreationForm({ users, groups, fetchAllTasks, setCreateNewTask }) {
 
   const { user } = useContext(AuthContext);
 
@@ -23,6 +23,7 @@ export default function TaskCreationForm({ users, group, fetchAllTasks, setCreat
 
   const [assignmentType, setAssignmentType] = useState(false);
   const [workersNeeded, setWorkersNeeded] = useState(1);
+  const [group,setGroup]=useState(groups ? groups?.[0] :"");
 
   const handleCreateTask = async () => {
 
@@ -44,7 +45,7 @@ export default function TaskCreationForm({ users, group, fetchAllTasks, setCreat
           group: group._id,
           workersNeeded: workersNeeded
         }
-      }else{
+      } else {
         payload.assignedWorkers = assignedWorkers;
       }
 
@@ -165,11 +166,15 @@ export default function TaskCreationForm({ users, group, fetchAllTasks, setCreat
 
           <View>
             <Text style={styles.label}>Group</Text>
-            <TextInput
+            <Picker
+              selectedValue={group?.name}
               style={styles.input}
-              value={group.name}
-              editable={false}
-            />
+              onValueChange={(itemValue) => setGroup(itemValue)}>
+                {groups && groups.map((group)=>{
+                  return <Picker.Item key={group._id} label={group.name} value={group} />
+                })}
+            </Picker>
+
           </View>
 
           <View>
