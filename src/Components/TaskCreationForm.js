@@ -23,7 +23,10 @@ export default function TaskCreationForm({ users, groups, fetchAllTasks, setCrea
 
   const [assignmentType, setAssignmentType] = useState(false);
   const [workersNeeded, setWorkersNeeded] = useState(1);
-  const [group,setGroup]=useState(groups ? groups?.[0] :"");
+  const [group, setGroup] = useState({
+    _id: "",
+    name: "",
+  });
 
   const handleCreateTask = async () => {
 
@@ -36,13 +39,19 @@ export default function TaskCreationForm({ users, groups, fetchAllTasks, setCrea
         dueDate,
         createdDate: new Date(),
         createdBy: user._id,
-
       };
+
+      console.log(typeof group)
+      if (group) {
+        payload.group = group._id;
+      }
+      else {
+        return alert("enter group feild")
+      }
 
       if (assignmentType) {
         payload.assignToEntireGroup = true;
         payload.groupTaskDetails = {
-          group: group._id,
           workersNeeded: workersNeeded
         }
       } else {
@@ -122,6 +131,23 @@ export default function TaskCreationForm({ users, groups, fetchAllTasks, setCrea
         </Picker>
       </View>
 
+      <View>
+        <Text style={styles.label}>Group</Text>
+        <Picker
+          selectedValue={group._id}
+          style={styles.input}
+          onValueChange={(value) => {
+            const selectedGroup = groups.find(g => g._id === value);
+            if (selectedGroup) setGroup(selectedGroup);
+          }}
+        >
+          <Picker.Item label="Select group" value="" />
+          {groups.map((g) => (
+            <Picker.Item key={g._id} label={g.name} value={g._id} />
+          ))}
+        </Picker>
+      </View>
+
 
       <View style={styles.toggleContainer}>
         <Text style={[styles.label, !assignmentType && styles.selected]}>Manual Assignment</Text>
@@ -163,19 +189,6 @@ export default function TaskCreationForm({ users, groups, fetchAllTasks, setCrea
       {assignmentType &&
         <View>
           <Text style={styles.label}>Group Assignment</Text>
-
-          <View>
-            <Text style={styles.label}>Group</Text>
-            <Picker
-              selectedValue={group?.name}
-              style={styles.input}
-              onValueChange={(itemValue) => setGroup(itemValue)}>
-                {groups && groups.map((group)=>{
-                  return <Picker.Item key={group._id} label={group.name} value={group} />
-                })}
-            </Picker>
-
-          </View>
 
           <View>
             <Text style={styles.label}>Workers Needed</Text>

@@ -6,6 +6,7 @@ import GoBackToDashboard from "../Components/GoToDashboard";
 import { AuthContext } from "../context/AuthContext";
 import FilterByDate from "../Components/FilterTaskByDate";
 import { LogBox } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import ReusableBarChart from "../Components/ReusableBarChart";
 
 export default function TaskDashboard({ navigation }) {
@@ -14,7 +15,17 @@ export default function TaskDashboard({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [filterByDate, setFilterByDate] = useState(false);
-  const [filteredTasksByDate, setFilteredTasksByDate] = useState([]);
+  const [filteredtasks, setFilteredTasks] = useState([]);
+
+  const [filterByGroup, setFilterByGroup] = useState(false)
+  const [groups, setGroups] = useState([])
+  const [groupFilter, setGroupFilter] = useState("")
+
+
+  const fetchGroups = async () => {
+    const res = await api.get(`/api/groups/`);
+    setGroups(res.data);
+  }
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -38,7 +49,11 @@ export default function TaskDashboard({ navigation }) {
         setLoading(false);
       }
     };
+
     fetchTasks();
+    if (user?.isAdmin && user.adminType === "root") {
+      fetchGroups()
+    }
   }, []);
 
   useEffect(() => {
@@ -46,15 +61,15 @@ export default function TaskDashboard({ navigation }) {
       'VirtualizedLists should never be nested', // Ignore this warning
     ]);
   }, []);
-  
+
 
   const now = new Date();
 
   const categorizedCounts = {
-    pending: (!filterByDate ? tasks : filteredTasksByDate)?.filter(t => t.status?.text === "pending").length,
-    in_progress: (!filterByDate ? tasks : filteredTasksByDate)?.filter(t => t.status?.text === "in_progress").length,
-    completed: (!filterByDate ? tasks : filteredTasksByDate)?.filter(t => t.status?.text === "completed").length,
-    overdue: (!filterByDate ? tasks : filteredTasksByDate)?.filter(t => {
+    pending: ((!filterByDate && !filterByGroup )? tasks : filteredtasks)?.filter(t => t.status?.text === "pending").length,
+    in_progress: ((!filterByDate && !filterByGroup ) ? tasks : filteredtasks)?.filter(t => t.status?.text === "in_progress").length,
+    completed: ( (!filterByDate && !filterByGroup )? tasks : filteredtasks)?.filter(t => t.status?.text === "completed").length,
+    overdue: ((!filterByDate && !filterByGroup )? tasks : filteredtasks)?.filter(t => {
       return (
         (t.status?.text !== "completed") &&
         t.dueDate &&
@@ -63,7 +78,7 @@ export default function TaskDashboard({ navigation }) {
     }).length,
   };
 
-  const filteredTasks = (!filterByDate ? tasks : filteredTasksByDate)?.filter(task => {
+  const filteredTasks = ((!filterByDate && !filterByGroup )? tasks : filteredtasks)?.filter(task => {
     if (!selectedCategory) return false;
 
     if (selectedCategory === "overdue") {
@@ -113,6 +128,10 @@ export default function TaskDashboard({ navigation }) {
     navigation.navigate('ReportDownload', { tasks: tasksOfThisMonth })
   }
 
+  const handleFilterChange = () => {
+    setFilteredTasks(tasks.filter(task=>task.group===groupFilter))
+  }
+
   return (
     <ScrollView style={styles.container}>
       <GoBackToDashboard />
@@ -120,12 +139,53 @@ export default function TaskDashboard({ navigation }) {
 
 
       {type === "staff" &&
-      (!filterByDate ? <TouchableOpacity style={styles.filterButton} onPress={() => setFilterByDate(true)}>
-                          <Text style={styles.filterButtonText}>Filter Tasks By Date</Text>
-                        </TouchableOpacity>
-      :<FilterByDate tasks={tasks} setFilteredTasks={setFilteredTasksByDate} setFilterByDate={setFilterByDate} />
-      )}
+        (!filterByDate ? <TouchableOpacity style={styles.filterButton} onPress={() => {setFilterByDate(true) ;setFilterByGroup(false)}}>
+          <Text style={styles.filterButtonText}>Filter Tasks By Date</Text>
+        </TouchableOpacity>
+          : <FilterByDate tasks={tasks} setFilteredTasks={setFilteredTasks} setFilterByDate={setFilterByDate} />
+        )}
 
+      
+      {(user?.isAdmin && user.adminType === "root" ) &&
+        (filterByGroup ?
+        <View>
+          <View style={styles.pickerWrapper}>
+            <Picker
+              selectedValue={groupFilter}
+              onValueChange={setGroupFilter}
+              style={styles.picker}
+              mode="dropdown"
+            >
+              {groups.map(group => {
+                return <Picker.Item key={group._id} label={group.name} value={group._id} />
+              })}
+
+
+            </Picker>
+          </View>
+
+          <View style={styles.buttonGroup}>
+            <TouchableOpacity style={styles.applyButton} onPress={handleFilterChange}>
+              <Text style={styles.buttonText}>Apply Filter</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.clearButton}
+              onPress={() => {
+                setFilterByGroup(false);
+                setFilteredTasks([]);
+              }}
+            >
+              <Text style={styles.buttonText}>Clear Filter</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        :
+         <TouchableOpacity style={styles.filterButton} onPress={() => {setFilterByGroup(true);setFilterByDate(false)}}>
+          <Text style={styles.filterButtonText}>Filter Tasks Group</Text>
+        </TouchableOpacity>
+        )
+      }
       <View style={styles.cardRow}>
         {categories.map(cat => (
           <TouchableOpacity
@@ -151,74 +211,74 @@ export default function TaskDashboard({ navigation }) {
 
 
       {user?.isAdmin && <TouchableOpacity style={styles.downloadButton} onPress={handleDownload}>
-                          <Text style={styles.downloadButtonText}>Download Summary of This Month</Text>
-                        </TouchableOpacity>
+        <Text style={styles.downloadButtonText}>Download Summary of This Month</Text>
+      </TouchableOpacity>
       }
-    <View style={styles.usersBox}>
-      {selectedCategory && (
-        <>
-          <Text style={styles.subTitle}>{type === "tenant" ? "Tickets" : "Tasks"} {categories.find(c => c.key === selectedCategory)?.label}</Text>
-          <FlatList
-            data={filteredTasks}
-            keyExtractor={item => item._id}
-            renderItem={({ item }) => (
-              <View style={styles.taskCard}>
-                <Text style={styles.taskTitle}>{item.title}</Text>
-                <Text>Comment : <Text style={styles.status}>{item.comment}</Text></Text>
-                <Text>Status : <Text style={styles.status}>{item.status?.text}</Text></Text>
-                {(selectedCategory === "pending" || selectedCategory === "overdue") && <Text>
-                  Assigned To : {" "}
-                  {type === "tenant" ? (item.assignedWorkers?.length > 0 ? 'Worker(s) assigned' : 'Workers not assigned') :
-                    (item.assignedWorkers?.length > 0
-                      ? `${item.assignedWorkers.length} worker(s)`
-                      : "Assigned to group")}
-                </Text>}
-                <Text>
-                  days from creation : {Math.floor((new Date() - new Date(item.createdDate)) / (1000 * 60 * 60 * 24))}
-                </Text>
-                {type === "staff" && <Text>
-                  Due Date : {" "}
-                  {item.dueDate
-                    ? item.dueDate
-                    : "N/A"}
-                </Text>}
-                <Text>Created At: {item.createdDate}</Text>
-                {item.status.image?.hasImage &&
-                  <Image
-                    source={{ uri: `${api.defaults.baseURL}api/${type === "tenant" ? "tickets" : "tasks"}/${item._id}/image` }}
-                    style={{ width: 200, height: 200 }}
-                  />
-                }
+      <View style={styles.usersBox}>
+        {selectedCategory && (
+          <>
+            <Text style={styles.subTitle}>{type === "tenant" ? "Tickets" : "Tasks"} {categories.find(c => c.key === selectedCategory)?.label}</Text>
+            <FlatList
+              data={filteredTasks}
+              keyExtractor={item => item._id}
+              renderItem={({ item }) => (
+                <View style={styles.taskCard}>
+                  <Text style={styles.taskTitle}>{item.title}</Text>
+                  <Text>Comment : <Text style={styles.status}>{item.comment}</Text></Text>
+                  <Text>Status : <Text style={styles.status}>{item.status?.text}</Text></Text>
+                  {(selectedCategory === "pending" || selectedCategory === "overdue") && <Text>
+                    Assigned To : {" "}
+                    {type === "tenant" ? (item.assignedWorkers?.length > 0 ? 'Worker(s) assigned' : 'Workers not assigned') :
+                      (item.assignedWorkers?.length > 0
+                        ? `${item.assignedWorkers.length} worker(s)`
+                        : "Assigned to group")}
+                  </Text>}
+                  <Text>
+                    days from creation : {Math.floor((new Date() - new Date(item.createdDate)) / (1000 * 60 * 60 * 24))}
+                  </Text>
+                  {type === "staff" && <Text>
+                    Due Date : {" "}
+                    {item.dueDate
+                      ? item.dueDate
+                      : "N/A"}
+                  </Text>}
+                  <Text>Created At: {item.createdDate}</Text>
+                  {item.status.image?.hasImage &&
+                    <Image
+                      source={{ uri: `${api.defaults.baseURL}api/${type === "tenant" ? "tickets" : "tasks"}/${item._id}/image` }}
+                      style={{ width: 200, height: 200 }}
+                    />
+                  }
 
 
-                {item.status.video?.hasVideo &&
-                  <Video
-                    source={{ uri: `${api.defaults.baseURL}api/${type === "tenant" ? "tickets" : "tasks"}/${item._id}/video` }}
-                    style={{ width: 600, height: 600 }}
-                    useNativeControls
-                    resizeMode="contain"
-                    isLooping
-                  />}
+                  {item.status.video?.hasVideo &&
+                    <Video
+                      source={{ uri: `${api.defaults.baseURL}api/${type === "tenant" ? "tickets" : "tasks"}/${item._id}/video` }}
+                      style={{ width: 600, height: 600 }}
+                      useNativeControls
+                      resizeMode="contain"
+                      isLooping
+                    />}
 
 
-                {item.status.audio?.hasAudio &&
-                  <Button title="Play Audio" onPress={() => { playAudio(item._id) }} />
-                }
+                  {item.status.audio?.hasAudio &&
+                    <Button title="Play Audio" onPress={() => { playAudio(item._id) }} />
+                  }
 
-              </View>
+                </View>
 
-            )}
+              )}
 
-          />
-        </>
-      )}
-    </View>
+            />
+          </>
+        )}
+      </View>
     </ScrollView>
   );
 }
 
 
-  const styles = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
@@ -352,6 +412,42 @@ export default function TaskDashboard({ navigation }) {
   audioButtonText: {
     color: "#fff",
     fontWeight: "600",
+  },
+  pickerWrapper: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    overflow: 'hidden',
+    marginBottom: 10,
+  },
+  picker: {
+    height: 50,
+    width: '100%',
+  },
+  buttonGroup: {
+    marginTop: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  applyButton: {
+    flex: 1,
+    backgroundColor: '#28a745',
+    padding: 12,
+    borderRadius: 6,
+    marginRight: 5,
+    alignItems: 'center',
+  },
+  clearButton: {
+    flex: 1,
+    backgroundColor: '#dc3545',
+    padding: 12,
+    borderRadius: 6,
+    marginLeft: 5,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: '#fff',
+    fontWeight: '600',
   },
 });
 

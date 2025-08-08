@@ -128,6 +128,7 @@ export default function TaskManagementScreen() {
                     <Text style={styles.taskTitle}>{task.title}</Text>
                     <Text style={styles.taskDetail}>Priority: {task.priority}</Text>
                     <Text style={styles.taskDetail}>Schedule For: {task.scheduleFor}</Text>
+                    <Text style={styles.taskDetail}>group:{groups.find(group=>group.id===task.group)}</Text>
                     <Text style={styles.taskDetail}>
                       Assigned Workers: {task.assignedWorkers?.length || 0}
                     </Text>
@@ -164,14 +165,7 @@ export default function TaskManagementScreen() {
                     <Text style={styles.taskTitle}>{task.title}</Text>
                     <Text style={styles.taskDetail}>Priority: {task.priority}</Text>
                     <Text style={styles.taskDetail}>Scheduled For: {task.scheduleFor}</Text>
-                    {
-                      task.assignToEntireGroup &&
-                      <Text style={styles.taskDetail}>
-                        Group: {(task.groupTaskDetails?.group && Array.isArray(groups))
-                          ? (groups.find(g => g._id === task.groupTaskDetails.group)?.name || 'None')
-                          : 'None'}
-                      </Text>
-                    }
+                    <Text style={styles.taskDetail}>group:{groups.find(group=>group._id===task.group)?.name}</Text>
                     <Text style={styles.taskDetail}>
                       Workers: {task.assignToEntireGroup
                         ? 'Assigned to entire group'
