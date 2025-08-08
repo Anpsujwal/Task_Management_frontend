@@ -211,7 +211,7 @@ export default function TicketReportScreen({ navigation }) {
           categorizedCounts.in_progress || 0,
           categorizedCounts.completed || 0,
           categorizedCounts.overdue || 0,
-        ]}
+        ]}      
       />
 
 

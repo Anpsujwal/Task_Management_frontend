@@ -27,9 +27,11 @@ export default function ReusableBarChart({ title, labels, data }) {
           datasets: [{ data }],
         }}
         width={screenWidth - 40}
-        height={220}
+        height={280} // ← increase height for visual space
         yAxisLabel=""
         fromZero
+        withInnerLines={true} // ✅ important to avoid Y-axis label overlaps
+        segments={data.includes(0) ? Math.max(...data) : Math.max(...data) + 1} // auto segments based on data
         chartConfig={{
           backgroundColor: "#ffffff",
           backgroundGradientFrom: "#f5f5f5",
@@ -41,7 +43,8 @@ export default function ReusableBarChart({ title, labels, data }) {
             borderRadius: 16,
           },
           propsForBackgroundLines: {
-            strokeDasharray: "", // solid lines
+            stroke: "#ccc",         // ✅ Light grey lines
+            strokeDasharray: "4",  
           },
         }}
         style={{
@@ -49,6 +52,7 @@ export default function ReusableBarChart({ title, labels, data }) {
           alignSelf: "center",
         }}
       />
+
     </View>
   );
 }
