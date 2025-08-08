@@ -16,6 +16,8 @@ import { Video, Audio } from "expo-av";
 import GoBackToDashboard from "../Components/GoToDashboard";
 import { AuthContext } from "../context/AuthContext";
 import FilterTicketsByDate from "../Components/FilterTicketsByDate";
+import ReusableBarChart from "../Components/ReusableBarChart";
+import { Picker } from "@react-native-picker/picker";
 
 export default function TicketReportScreen({ navigation }) {
   const { user, type } = useContext(AuthContext);
@@ -23,7 +25,16 @@ export default function TicketReportScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [filterByDate, setFilterByDate] = useState(false);
-  const [filteredTicketsByDate, setFilteredTicketsByDate] = useState([]);
+  const [filteredtickets, setFilteredTickets] = useState([]);
+
+  const [filterByGroup, setFilterByGroup] = useState(false)
+  const [groups, setGroups] = useState([])
+  const [groupFilter, setGroupFilter] = useState("")
+
+  const fetchGroups = async () => {
+    const res = await api.get(`/api/groups/`);
+    setGroups(res.data);
+  }
 
   useEffect(() => {
     LogBox.ignoreLogs([
@@ -49,15 +60,20 @@ export default function TicketReportScreen({ navigation }) {
       }
     };
     fetchTickets();
+    fetchGroups();
   }, []);
+
+  const handleFilterChange = () => {
+    setFilteredTickets(tickets.filter(t => t.assignedGroup === groupFilter))
+  }
 
   const now = new Date();
 
   const categorizedCounts = {
-    pending: (!filterByDate ? tickets : filteredTicketsByDate)?.filter(t => t.status?.text === "pending").length,
-    in_progress: (!filterByDate ? tickets : filteredTicketsByDate)?.filter(t => t.status?.text === "in_progress").length,
-    completed: (!filterByDate ? tickets : filteredTicketsByDate)?.filter(t => t.status?.text === "completed").length,
-    overdue: (!filterByDate ? tickets : filteredTicketsByDate)?.filter(t => {
+    pending: ((!filterByDate && !filterByGroup) ? tickets : filteredtickets)?.filter(t => t.status?.text === "pending").length,
+    in_progress: ((!filterByDate && !filterByGroup) ? tickets : filteredtickets)?.filter(t => t.status?.text === "in_progress").length,
+    completed: ((!filterByDate && !filterByGroup) ? tickets : filteredtickets)?.filter(t => t.status?.text === "completed").length,
+    overdue: ((!filterByDate && !filterByGroup) ? tickets : filteredtickets)?.filter(t => {
       return (
         (t.status?.text !== "completed") &&
         t.completeBy?.dueDate &&
@@ -66,7 +82,7 @@ export default function TicketReportScreen({ navigation }) {
     }).length,
   };
 
-  const filteredTickets = (!filterByDate ? tickets : filteredTicketsByDate)?.filter(task => {
+  const filteredTickets = ((!filterByDate && !filterByGroup) ? tickets : filteredtickets)?.filter(task => {
     if (!selectedCategory) return false;
 
     if (selectedCategory === "overdue") {
@@ -120,7 +136,7 @@ export default function TicketReportScreen({ navigation }) {
       <Text style={styles.title}>Ticket Summary</Text>
 
       {!filterByDate && (
-        <TouchableOpacity style={styles.button} onPress={() => setFilterByDate(true)}>
+        <TouchableOpacity style={styles.button} onPress={() => { setFilterByDate(true); setFilterByGroup(false) }}>
           <Text style={styles.buttonText}>Filter Tickets By Date</Text>
         </TouchableOpacity>
       )}
@@ -128,10 +144,51 @@ export default function TicketReportScreen({ navigation }) {
       {filterByDate && (
         <FilterTicketsByDate
           tickets={tickets}
-          setFilteredTickets={setFilteredTicketsByDate}
+          setFilteredTickets={setFilteredTickets}
           setFilterByDate={setFilterByDate}
         />
       )}
+
+      {(user?.isAdmin && user.adminType === "root") &&
+        (filterByGroup ?
+          <View>
+            <View style={styles.pickerWrapper}>
+              <Picker
+                selectedValue={groupFilter}
+                onValueChange={setGroupFilter}
+                style={styles.picker}
+                mode="dropdown"
+              >
+                {groups.map(group => {
+                  return <Picker.Item key={group._id} label={group.name} value={group._id} />
+                })}
+
+
+              </Picker>
+            </View>
+
+            <View style={styles.buttonGroup}>
+              <TouchableOpacity style={styles.applyButton} onPress={handleFilterChange}>
+                <Text style={styles.buttonText}>Apply Filter</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.clearButton}
+                onPress={() => {
+                  setFilterByGroup(false);
+                  setFilteredTickets([]);
+                }}
+              >
+                <Text style={styles.buttonText}>Clear Filter</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          :
+          <TouchableOpacity style={styles.button} onPress={() => { setFilterByGroup(true); setFilterByDate(false) }}>
+            <Text style={styles.filterButtonText}>Filter Tickets By Group</Text>
+          </TouchableOpacity>
+        )
+      }
 
       <View style={styles.cardRow}>
         {categories.map(cat => (
@@ -145,6 +202,19 @@ export default function TicketReportScreen({ navigation }) {
           </TouchableOpacity>
         ))}
       </View>
+
+      <ReusableBarChart
+        title="Tickets Summary Graph"
+        labels={["Pending", "In Progress", "Completed", "Overdue"]}
+        data={[
+          categorizedCounts.pending || 0,
+          categorizedCounts.in_progress || 0,
+          categorizedCounts.completed || 0,
+          categorizedCounts.overdue || 0,
+        ]}      
+      />
+
+
 
       {user?.isAdmin && (
         <TouchableOpacity style={styles.button} onPress={handleDownload}>
@@ -168,24 +238,19 @@ export default function TicketReportScreen({ navigation }) {
                 <Text>Comment: <Text style={styles.status}>{item.comment}</Text></Text>
                 <Text>Status: <Text style={styles.status}>{item.status?.text}</Text></Text>
 
-                {(selectedCategory === "pending" || selectedCategory === "overdue") && (
-                  <Text>
-                    Assigned To:{" "}
-                    {type === "tenant"
-                      ? item.assignedWorkers?.length > 0
-                        ? "Worker(s) assigned"
-                        : "Workers not assigned"
-                      : item.assignedWorkers?.length > 0
-                        ? `${item.assignedWorkers.length} worker(s)`
-                        : "Assigned to group"}
-                  </Text>
-                )}
+                <Text>
+                  Assigned To:{groups.find(g => g._id === item.assignedGroup).name}
+                </Text>
+
+                <Text>
+                  Worker Assigned:{item.assignedWorker? "Yes" :"No"}
+                </Text>
 
                 <Text>
                   Days from creation:{" "}
                   {Math.floor(
                     (new Date() - new Date(item.createdDate)) /
-                      (1000 * 60 * 60 * 24)
+                    (1000 * 60 * 60 * 24)
                   )}
                 </Text>
                 <Text>Created At: {item.createdDate}</Text>
@@ -306,5 +371,41 @@ const styles = StyleSheet.create({
   status: {
     fontWeight: "600",
     color: "#007bff",
+  },
+  pickerWrapper: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    overflow: 'hidden',
+    marginBottom: 10,
+  },
+  picker: {
+    height: 50,
+    width: '100%',
+  },
+  buttonGroup: {
+    marginTop: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  applyButton: {
+    flex: 1,
+    backgroundColor: '#28a745',
+    padding: 12,
+    borderRadius: 6,
+    marginRight: 5,
+    alignItems: 'center',
+  },
+  clearButton: {
+    flex: 1,
+    backgroundColor: '#dc3545',
+    padding: 12,
+    borderRadius: 6,
+    marginLeft: 5,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: '#fff',
+    fontWeight: '600',
   },
 });

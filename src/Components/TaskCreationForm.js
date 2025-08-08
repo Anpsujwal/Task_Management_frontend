@@ -4,11 +4,11 @@ import MultiSelect from 'react-native-multiple-select';
 import React, { useEffect, useState, useContext } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, Alert,Switch
+  StyleSheet, Alert, Switch
 } from 'react-native';
 import api from '../api/api';
 import { AuthContext } from '../context/AuthContext';
-export default function TaskCreationForm({ users, group, fetchAllTasks, setCreateNewTask }) {
+export default function TaskCreationForm({ users, groups, fetchAllTasks, setCreateNewTask }) {
 
   const { user } = useContext(AuthContext);
 
@@ -23,6 +23,10 @@ export default function TaskCreationForm({ users, group, fetchAllTasks, setCreat
 
   const [assignmentType, setAssignmentType] = useState(false);
   const [workersNeeded, setWorkersNeeded] = useState(1);
+  const [group, setGroup] = useState({
+    _id: "",
+    name: "",
+  });
 
   const handleCreateTask = async () => {
 
@@ -35,16 +39,22 @@ export default function TaskCreationForm({ users, group, fetchAllTasks, setCreat
         dueDate,
         createdDate: new Date(),
         createdBy: user._id,
-
       };
+
+      console.log(typeof group)
+      if (group) {
+        payload.group = group._id;
+      }
+      else {
+        return alert("enter group feild")
+      }
 
       if (assignmentType) {
         payload.assignToEntireGroup = true;
         payload.groupTaskDetails = {
-          group: group._id,
           workersNeeded: workersNeeded
         }
-      }else{
+      } else {
         payload.assignedWorkers = assignedWorkers;
       }
 
@@ -121,6 +131,23 @@ export default function TaskCreationForm({ users, group, fetchAllTasks, setCreat
         </Picker>
       </View>
 
+      <View>
+        <Text style={styles.label}>Group</Text>
+        <Picker
+          selectedValue={group._id}
+          style={styles.input}
+          onValueChange={(value) => {
+            const selectedGroup = groups.find(g => g._id === value);
+            if (selectedGroup) setGroup(selectedGroup);
+          }}
+        >
+          <Picker.Item label="Select group" value="" />
+          {groups.map((g) => (
+            <Picker.Item key={g._id} label={g.name} value={g._id} />
+          ))}
+        </Picker>
+      </View>
+
 
       <View style={styles.toggleContainer}>
         <Text style={[styles.label, !assignmentType && styles.selected]}>Manual Assignment</Text>
@@ -162,15 +189,6 @@ export default function TaskCreationForm({ users, group, fetchAllTasks, setCreat
       {assignmentType &&
         <View>
           <Text style={styles.label}>Group Assignment</Text>
-
-          <View>
-            <Text style={styles.label}>Group</Text>
-            <TextInput
-              style={styles.input}
-              value={group.name}
-              editable={false}
-            />
-          </View>
 
           <View>
             <Text style={styles.label}>Workers Needed</Text>

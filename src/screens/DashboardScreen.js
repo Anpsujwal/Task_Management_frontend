@@ -21,7 +21,10 @@ export default function DashboardScreen({ navigation }) {
             <CustomButton title="User Management" onPress={() => navigation.navigate('UserManagement')} />
 
             {user.adminType === 'root' &&
+             (<>
               <CustomButton title="Group Management" onPress={() => navigation.navigate('GroupManagement')} />
+              <CustomButton title="Task Management" onPress={() => navigation.navigate('TaskManagement')} />
+                </>)
             }
 
             {user.adminType === 'group' && (
